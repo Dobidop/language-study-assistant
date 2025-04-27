@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Korean Study Assistant - Session Summary</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    .summary {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .correct {
+      color: green;
+    }
+    .warning {
+      color: darkorange;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📚 Session Summary</h1>
+
+<div id="summary" class="summary">
+  Loading session summary...
+</div>
+
+<script>
+async function fetchSessionSummary() {
+  try {
+    const response = await fetch("/api/session/summary");
+    if (!response.ok) {
+      document.getElementById("summary").innerHTML = "⚠️ No session summary available.";
+      return;
+    }
+
+    const data = await response.json();
+    const summary = data.summary;
+
+    let colorClass = "correct";
+    if (summary.accuracy_rate < 60) colorClass = "error";
+    else if (summary.accuracy_rate < 80) colorClass = "warning";
+
+    const html = `
+      <p><strong>Exercises Completed:</strong> ${summary.total_exercises}</p>
+      <p><strong>Duration:</strong> ${summary.duration_minutes} minutes</p>
+      <p><strong>Correct Answers:</strong> <span class="${colorClass}">${summary.correct_exercises} (${summary.accuracy_rate}%)</span></p>
+      <p><strong>Common Mistakes:</strong></p>
+      <ul>
+        ${summary.main_errors.map(err => `<li>${err}</li>`).join("")}
+      </ul>
+    `;
+
+    document.getElementById("summary").innerHTML = html;
+  } catch (error) {
+    document.getElementById("summary").innerHTML = "⚠️ Error loading session summary.";
+    console.error(error);
+  }
+}
+
+// Call the function immediately when the page loads
+fetchSessionSummary();
+</script>
+
+</body>
+</html>

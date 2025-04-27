@@ -1,0 +1,50 @@
+{
+  "language": "Korean",
+  "levels": {
+    "beginner": {
+      "description": "Beginner-level Korean grammar points for basic communication.",
+      "grammar_points": [
+        {
+          "id": "object_particles",
+          "name": "Object Particles (을/를)",
+          "notes": "Marking the object of a sentence."
+        },
+        {
+          "id": "subject_particles",
+          "name": "Subject Particles (이/가)",
+          "notes": "Marking the subject of a sentence."
+        },
+        {
+          "id": "topic_particles",
+          "name": "Topic Particles (은/는)",
+          "notes": "Marking the topic or contrast."
+        },
+        {
+          "id": "polite_verb_forms",
+          "name": "Polite Verb Endings (~어요/아요)",
+          "notes": "Basic polite speech style."
+        },
+        {
+          "id": "location_particles",
+          "name": "Location Particles (에, 에서)",
+          "notes": "Marking where something is or happens."
+        },
+        {
+          "id": "basic_questions",
+          "name": "Question Words (뭐, 어디, 누구)",
+          "notes": "Forming simple questions."
+        },
+        {
+          "id": "command_forms",
+          "name": "Command/Request Forms (으세요)",
+          "notes": "Polite commands and requests."
+        },
+        {
+          "id": "basic_tenses",
+          "name": "Present and Past Tenses",
+          "notes": "Talking about present and past actions."
+        }
+      ]
+    }
+  }
+}

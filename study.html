@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Korean Study Session</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+    .exercise-box, .feedback-box, .controls { margin-top: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+    #feedback { margin-top: 1rem; }
+    .correct { color: green; }
+    .wrong { color: red; }
+    button { padding: 0.5rem 1rem; margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<h1>🧠 Korean Study Session</h1>
+
+<div class="controls">
+  <button id="startSessionBtn">Start New Session</button>
+  <button id="endSessionBtn" disabled>End Session</button>
+</div>
+
+<div class="exercise-box" id="exerciseBox" style="display:none;">
+  <h2>Exercise</h2>
+  <p id="exercise">Loading...</p>
+  <form id="answerForm">
+    <input type="text" id="userAnswer" placeholder="Enter your answer..." required style="width: 100%; padding: 0.5rem;">
+    <button type="submit" style="margin-top: 1rem;">Submit Answer</button>
+  </form>
+</div>
+
+<div class="feedback-box" id="feedback" style="display:none;">
+  <!-- Feedback will appear here -->
+</div>
+
+<script>
+let currentExerciseId = null;
+let sessionActive = false;
+
+async function startSession() {
+  const response = await fetch("/api/session/start", { method: "POST" });
+  if (response.ok) {
+    sessionActive = true;
+    document.getElementById("startSessionBtn").disabled = true;
+    document.getElementById("endSessionBtn").disabled = false;
+    document.getElementById("exerciseBox").style.display = "block";
+    fetchNewExercise();
+  } else {
+    alert("Failed to start session.");
+  }
+}
+
+async function endSession() {
+  const response = await fetch("/api/session/end", { method: "POST" });
+  if (response.ok) {
+    const data = await response.json();
+    sessionActive = false;
+    document.getElementById("startSessionBtn").disabled = false;
+    document.getElementById("endSessionBtn").disabled = true;
+    document.getElementById("exerciseBox").style.display = "none";
+    document.getElementById("feedback").style.display = "none";
+
+    alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
+  } else {
+    alert("Failed to end session properly.");
+  }
+}
+
+async function fetchNewExercise() {
+  if (!sessionActive) return;
+
+  const response = await fetch("/api/exercise/new", { method: "POST" });
+  const data = await response.json();
+
+  if (data.exercise) {
+    document.getElementById("exercise").textContent = data.exercise.prompt;
+    currentExerciseId = data.exercise.exercise_id;
+    document.getElementById("userAnswer").value = "";
+    document.getElementById("feedback").style.display = "none";
+  } else {
+    document.getElementById("exercise").textContent = "⚠️ Could not load exercise.";
+  }
+}
+
+async function submitAnswer(event) {
+  event.preventDefault();
+  const userAnswer = document.getElementById("userAnswer").value.trim();
+
+  if (!currentExerciseId || !userAnswer) return;
+
+  const response = await fetch("/api/exercise/answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      exercise_id: currentExerciseId,
+      user_answer: userAnswer
+    })
+  });
+
+  const data = await response.json();
+  const feedbackDiv = document.getElementById("feedback");
+  feedbackDiv.style.display = "block";
+
+  if (data.feedback) {
+    if (data.feedback.is_correct) {
+      feedbackDiv.innerHTML = `<p class="correct">✅ Correct!</p>`;
+      setTimeout(fetchNewExercise, 1500); // Auto-advance
+    } else {
+      feedbackDiv.innerHTML = `
+        <p class="wrong">❌ Not quite right.</p>
+        <p><strong>Suggested Correction:</strong> ${data.feedback.corrected_answer}</p>
+        <p><strong>Explanation:</strong></p>
+        <ul>
+          ${data.feedback.error_analysis.map(err => `<li>${err}</li>`).join("")}
+        </ul>
+      `;
+    }
+  } else {
+    feedbackDiv.innerHTML = `<p class="wrong">⚠️ Could not evaluate answer.</p>`;
+  }
+}
+
+// Hook up buttons
+document.getElementById("startSessionBtn").addEventListener("click", startSession);
+document.getElementById("endSessionBtn").addEventListener("click", endSession);
+document.getElementById("answerForm").addEventListener("submit", submitAnswer);
+
+</script>
+
+</body>
+</html>

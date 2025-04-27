@@ -1,0 +1,59 @@
+import json
+from engine.llm_client import chat
+
+def evaluate_answer(prompt, user_answer, expected_answer, grammar_focus):
+    """
+    Send user answer to GPT along with prompt and expected answer for structured feedback.
+    """
+
+    evaluation_prompt = f"""
+You are a Korean language tutor assistant.
+Evaluate the user's answer to a language exercise and explain any mistakes.
+
+## Exercise:
+Prompt: {prompt}
+Expected answer: {expected_answer}
+User answer: {user_answer}
+
+## Instructions:
+Return your evaluation in the following JSON format:
+
+{{
+  "is_correct": true/false,
+  "corrected_answer": "...",
+  "error_analysis": ["...", "..."],
+  "grammar_focus": {grammar_focus},
+  "explanation_summary": "..."
+}}
+    """
+
+    response_text = chat(
+        messages=[
+            {"role": "system", "content": "You are a helpful Korean tutor assistant."},
+            {"role": "user", "content": evaluation_prompt.strip()}
+        ],
+        temperature=0.2
+    )
+
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        print("⚠️ GPT response was not valid JSON:")
+        print(response_text)
+        return {
+            "is_correct": False,
+            "corrected_answer": expected_answer,
+            "error_analysis": ["Could not parse GPT response."],
+            "grammar_focus": grammar_focus,
+            "explanation_summary": "GPT response was invalid."
+        }
+
+def build_filled_sentence(prompt: str, user_response: str | list[str]) -> str:
+    if isinstance(user_response, str):
+        return prompt.replace("___", user_response, 1)
+    elif isinstance(user_response, list):
+        filled = prompt
+        for fill in user_response:
+            filled = filled.replace("___", fill, 1)
+        return filled
+    return prompt

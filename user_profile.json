@@ -1,0 +1,113 @@
+{
+  "user_id": "user_001",
+  "level": "beginner",
+  "native_language": "English",
+  "target_language": "Korean",
+  "instruction_language": "English",
+  "task_language": "Korean",
+  "grammar_summary": {
+    "object_particles": {
+      "exposure": 5,
+      "mistake_rate": 0.2,
+      "status": "moderate"
+    },
+    "polite_verb_forms": {
+      "exposure": 37,
+      "mistake_rate": 1.0,
+      "status": "weak"
+    },
+    "은_는_vs_이_가": {
+      "exposure": 6,
+      "mistake_rate": 0.1,
+      "status": "strong"
+    },
+    "은/는_vs_이/가": {
+      "exposure": 3,
+      "mistake_rate": 0.15000000000000002,
+      "status": "new"
+    }
+  },
+  "common_errors": {
+    "used plain instead of polite verb": 3,
+    "used 은/는 instead of 을/를": 2,
+    "User's answer 'asdasd' is not a valid response to the exercise.": 1,
+    "The exercise requires filling in the correct particles '은/는' or '이/가' in the sentences.": 1,
+    "문장에서 빈칸에 들어갈 알맞은 조사를 묻는 문제이므로, '가'만 쓰는 것이 아니라 '사과가'처럼 명사와 함께 써야 합니다.": 1,
+    "조사만 따로 쓰면 문장이 완성되지 않으므로, 전체 문장 형태로 답을 써야 합니다.": 1,
+    "The particle '가' is used to mark the subject of a sentence, but in this context, '사과' is the topic, not just the subject.": 1,
+    "The particle '는' is appropriate here because it sets '사과' as the topic of the sentence, indicating that the statement is about apples in general.": 1,
+    "'가' would be used if the sentence was emphasizing the subject or introducing new information, but since the sentence is making a general statement about apples, '는' is the correct choice.": 1,
+    "The particle '가' is used to mark the subject of a sentence, often introducing new information or emphasizing the subject itself.": 1,
+    "In this sentence, '사과는 맛있어요.' uses the topic particle '는' to indicate that the sentence is about apples in general, which is more natural when stating a general fact or opinion.": 1,
+    "Using '가' here sounds like you are emphasizing '사과' as the subject, which is less natural in this context.": 1,
+    "The phrase '맛 먹어요' is incorrect because '맛' (taste) is a noun and cannot be directly combined with the verb '먹어요' (eat) in this way.": 1,
+    "'맛있다' is the correct adjective to describe something as tasty, but it should not be combined directly with '먹어요' as '맛 먹어요'.": 1,
+    "The verb ending '먹요' is incorrect.": 2,
+    "The correct polite ending is '먹어요' for the verb '먹다' (to eat).": 1,
+    "The correct polite ending is '먹어요' for the verb '먹다' (to eat) in present tense.": 1,
+    "The verb '먹어요' means 'to eat,' which is not appropriate for '물' (water).": 1,
+    "The correct verb for drinking liquids is '마시다,' so it should be '마셔요' in this context.": 1,
+    "The verb '먹어요' means 'to eat', which is incorrect in this context.": 1,
+    "The correct verb should be '읽어요', which means 'to read', because you read a book, not eat it.": 1,
+    "The verb '읽어요' means 'to read', which does not make sense with '물을' (water) as the object.": 1,
+    "The correct verb should be '마셔요', which means 'to drink', matching the object '물을' (water).": 1,
+    "The verb '읽어요' means 'to read,' but the sentence structure '도서관에 읽어요' is incorrect because '에' is a location particle used with verbs of movement like '가다' (to go).": 1,
+    "To express 'I go to the library,' the correct verb is '가요' (to go), not '읽어요' (to read).": 1,
+    "'가요' means 'to go', but the verb '마셔요' (to drink) is needed to match the object '물을' (water).": 1,
+    "The verb does not agree with the object; you cannot 'go' water, you 'drink' water.": 1,
+    "'먹어요' means 'to eat', which is used for food, not drinks.": 1,
+    "'마셔요' is the correct verb for 'to drink' in polite form.": 1,
+    "'먹어요' means 'to eat', which is not appropriate for '책' (book).": 2,
+    "The correct verb is '읽어요', which means 'to read'.": 2,
+    "'먹어요' means 'to eat', which is not appropriate for water.": 2,
+    "The correct verb for 'to drink' is '마셔요' when referring to liquids like water.": 4,
+    "The verb '먹어요' means 'to eat,' which is not appropriate for water.": 1,
+    "The correct verb for drinking is '마셔요,' which means 'to drink.'": 1,
+    "The verb '먹어요' means 'to eat', which is not appropriate for water.": 2,
+    "The verb '마셔요' (to drink, polite form) was misspelled as '마샤요'.": 1,
+    "'마셔요' is the correct conjugation of '마시다' in the present polite form.": 1
+  },
+  "vocabulary": {
+    "core": {
+      "사과": {
+        "confidence": 5,
+        "last_seen": "2025-04-24"
+      },
+      "먹다": {
+        "confidence": 5,
+        "last_seen": "2025-04-24"
+      }
+    },
+    "familiar": {
+      "학교": {
+        "confidence": 2,
+        "last_seen": "2025-04-23"
+      },
+      "마시다": {
+        "confidence": 2,
+        "last_seen": "2025-04-22"
+      }
+    },
+    "newly_introduced": {
+      "도서관": {
+        "introduced_by": "session_2025_04_22"
+      }
+    }
+  },
+  "session_tracking": {
+    "last_session_date": "2025-04-24",
+    "exercises_completed": 10,
+    "correct_ratio_last_10": 0.7,
+    "grammar_points_seen": []
+  },
+  "learning_preferences": {
+    "preferred_formality": "polite",
+    "max_new_words_per_session": 2,
+    "preferred_exercise_types": [
+      "fill_in_blank",
+      "translation"
+    ],
+    "prefers_korean_prompts": false,
+    "allow_open_tasks": true
+  }
+}
