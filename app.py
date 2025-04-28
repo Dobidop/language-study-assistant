@@ -7,6 +7,7 @@ from engine.profile import load_user_profile, update_user_profile
 from engine.planner import select_focus_areas
 from engine.generator import generate_exercise
 from engine.evaluator import evaluate_answer, build_filled_sentence
+from engine.logger import log_exercise_to_session
 
 
 app = Flask(__name__, static_folder=".", static_url_path="")
@@ -29,7 +30,7 @@ class ExerciseSessionManager:
         self.session_start_time = datetime.now()
         
     def end_current_session(self):
-        from engine.logger import log_exercise_to_session
+        
 
         if not self.current_session:
             return None
@@ -72,7 +73,6 @@ class ExerciseSessionManager:
         return summary
 
     def generate_exercise(self):
-        from engine.generator import generate_exercise
 
         exercise = generate_exercise(self.profile, self.grammar_targets, self.recent_exercises)
         if not exercise:
@@ -82,19 +82,18 @@ class ExerciseSessionManager:
         exercise["exercise_id"] = exercise_id
 
         self.current_session.append(exercise)
-
         return {
             "exercise_id": exercise_id,
             "prompt": exercise["prompt"],
             "exercise_type": exercise["exercise_type"],
-            "grammar_focus": exercise.get("grammar_focus", [])
+            "expected_answer": exercise["expected_answer"],
+            "filled_sentence": exercise["filled_sentence"],
+            "glossary": exercise["glossary"],
+            "grammar_focus": exercise.get("grammar_focus", []),
+            "translated_sentence": exercise.get("translated_sentence", "")
         }
 
     def evaluate_exercise(self, exercise_id, user_answer):
-        from engine.evaluator import evaluate_answer
-        from engine.session import build_filled_sentence
-        from engine.profile import update_user_profile
-
         matching = next((ex for ex in self.current_session if ex["exercise_id"] == exercise_id), None)
         if not matching:
             return None
@@ -137,9 +136,27 @@ def load_latest_session_summary():
     
     return session_log.get("summary")
 
+manager = ExerciseSessionManager()
+manager.start_new_session()
+
 @app.route("/")
 def serve_index():
     return send_from_directory(".", "summary.html")
+
+
+@app.route("/api/session/start", methods=["POST"])
+def api_start_session():
+    manager.start_new_session()
+    return jsonify({"message": "New session started."}), 200
+
+@app.route("/api/session/end", methods=["POST"])
+def api_end_session():
+    session_summary = manager.end_current_session()
+    if session_summary:
+        return jsonify({"summary": session_summary}), 200
+    else:
+        return jsonify({"error": "No active session."}), 400
+
 
 @app.route("/api/session/summary", methods=["GET"])
 def get_session_summary():
@@ -169,8 +186,6 @@ def get_session_history():
 
     return jsonify({"sessions": sessions})
 
-manager = ExerciseSessionManager()
-manager.start_new_session()
 
 @app.route("/api/exercise/new", methods=["POST"])
 def api_new_exercise():
@@ -198,23 +213,6 @@ def api_answer_exercise():
         return jsonify({"feedback": feedback}), 200
     else:
         return jsonify({"error": "Exercise ID not found."}), 404
-
-
-
-@app.route("/api/session/start", methods=["POST"])
-def api_start_session():
-    manager.start_new_session()
-    return jsonify({"message": "New session started."}), 200
-
-@app.route("/api/session/end", methods=["POST"])
-def api_end_session():
-    session_summary = manager.end_current_session()
-    if session_summary:
-        return jsonify({"summary": session_summary}), 200
-    else:
-        return jsonify({"error": "No active session."}), 400
-
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

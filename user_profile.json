@@ -7,25 +7,21 @@
   "task_language": "Korean",
   "grammar_summary": {
     "object_particles": {
-      "exposure": 5,
-      "mistake_rate": 0.2,
-      "status": "moderate"
+      "exposure": 12,
+      "mistake_rate": 0.05,
+      "status": "strong",
+      "recent_correct_streak": 3
     },
     "polite_verb_forms": {
       "exposure": 44,
       "mistake_rate": 0.0,
-      "status": "strong",
+      "status": "weak",
       "recent_correct_streak": 5
     },
     "은_는_vs_이_가": {
       "exposure": 6,
       "mistake_rate": 0.1,
       "status": "strong"
-    },
-    "은/는_vs_이/가": {
-      "exposure": 3,
-      "mistake_rate": 0.15000000000000002,
-      "status": "new"
     },
     "topic_particles": {
       "exposure": 5,
@@ -38,6 +34,54 @@
       "mistake_rate": 0.0,
       "status": "strong",
       "recent_correct_streak": 4
+    },
+    "location_particles": {
+      "exposure": 14,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 8
+    },
+    "basic_questions": {
+      "exposure": 7,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 5
+    },
+    "command_forms": {
+      "exposure": 4,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 2
+    },
+    "basic_tenses": {
+      "exposure": 4,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 2
+    },
+    "location_particle": {
+      "exposure": 5,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 3
+    },
+    "object_particle": {
+      "exposure": 5,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 3
+    },
+    "polite_verb_ending": {
+      "exposure": 5,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 3
+    },
+    "polite_verb_endings": {
+      "exposure": 7,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 3
     }
   },
   "common_errors": {
@@ -60,7 +104,7 @@
     "The correct polite ending is '먹어요' for the verb '먹다' (to eat) in present tense.": 1,
     "The verb '먹어요' means 'to eat,' which is not appropriate for '물' (water).": 1,
     "The correct verb for drinking liquids is '마시다,' so it should be '마셔요' in this context.": 1,
-    "The verb '먹어요' means 'to eat', which is incorrect in this context.": 1,
+    "The verb '먹어요' means 'to eat', which is incorrect in this context.": 2,
     "The correct verb should be '읽어요', which means 'to read', because you read a book, not eat it.": 1,
     "The verb '읽어요' means 'to read', which does not make sense with '물을' (water) as the object.": 2,
     "The correct verb should be '마셔요', which means 'to drink', matching the object '물을' (water).": 2,
@@ -82,7 +126,27 @@
     "The verb '마샤요' is incorrect. The correct polite present tense form of '마시다' (to drink) is '마셔요'.": 1,
     "The vowel 'ㅓ' should be used instead of 'ㅏ' in the verb ending for '마시다'.": 1,
     "The user used the particle '에', which indicates location or direction (to/at/in), but in this sentence, the topic particle '는' is needed to indicate that 'the school' is the topic of the sentence.": 1,
-    "'커요' (is big) describes the school, so the sentence should use the topic particle to mean 'As for the school, it is big.'": 1
+    "'커요' (is big) describes the school, so the sentence should use the topic particle to mean 'As for the school, it is big.'": 1,
+    "The topic particle '는' was used after '도서관', which ends in a consonant. The correct topic particle after a consonant is '은', not '는'.": 1,
+    "'도서관은' is the correct form because '도서관' ends with the consonant 'ㄴ'.": 1,
+    "The user used '는' (topic particle) instead of '에' (location particle) after '학교'.": 1,
+    "'에' is needed to indicate the location where the apples are.": 1,
+    "'먹다' is the dictionary form of the verb and cannot be used directly before '주세요'.": 1,
+    "The verb stem '먹-' should be combined with the polite request ending '-어 주세요' to form '먹어 주세요'.": 1,
+    "The user's answer repeats '마셨어요' without connecting the actions, which is unnatural in Korean.": 1,
+    "The correct form uses '마시고' to connect two actions, indicating that one action happened and then the next.": 1,
+    "The correct verb should be '읽어요', which means 'to read'.": 1,
+    "'읽어요' means 'to read', but '물을 읽어요' translates to 'read water', which doesn't make sense.": 1,
+    "The correct verb for 'to drink' is '마셔요', so it should be '물을 마셔요'.": 1,
+    "The verb ending '어요' is repeated twice as '읽어요요', which is incorrect.": 1,
+    "Only one polite ending '어요' should be used at the end of the verb.": 1,
+    "The verb '읽어요' (to read) is missing; only the verb ending '어요' is present, which is incomplete and incorrect.": 2,
+    "A complete verb is required to finish the sentence and convey the meaning 'I read books at the library.'": 1,
+    "A complete verb is necessary for the sentence to make sense. '어요' by itself does not convey any meaning.": 1,
+    "The verb '마셔요' (to drink, polite form) was misspelled as '마여요요'. The correct form is '마셔요'.": 1,
+    "There is an extra '요' at the end, resulting in '마여요요', which is incorrect.": 1,
+    "The verb ending '어요' is repeated twice ('읽어요요'), which is incorrect.": 1,
+    "Only one polite ending ('-어요') should be used at the end of the sentence.": 1
   },
   "vocabulary": {
     "core": {
@@ -121,8 +185,8 @@
     "preferred_formality": "polite",
     "max_new_words_per_session": 2,
     "preferred_exercise_types": [
-      "fill_in_blank",
-      "translation"
+      "translation",
+      "fill_in_blank"
     ],
     "prefers_korean_prompts": false,
     "allow_open_tasks": true

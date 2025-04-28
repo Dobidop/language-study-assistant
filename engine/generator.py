@@ -75,7 +75,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
         - filled_sentence must be the full sentence with all blanks filled in correctly.
     - Do NOT explain or comment on the exercise.
     - The exercise should match this type: {user_profile['learning_preferences']['preferred_exercise_types'][0]}
-    - It must reinforce these grammar points: {grammar_targets}
+    - It must reinforce these grammar points: {', '.join(grammar_targets) if grammar_targets else "none"}
     - Match the user's level: {user_profile.get("level", "beginner")}-appropriate grammar and vocabulary.
     - The prompt must be written in {task_lang}, the glossary in {instruction_lang}, and the answer in {target_lang}.
     - {formality_instruction}
@@ -97,11 +97,12 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
       "expected_answer": "...",
       "filled_sentence": "...",
       "glossary": {{ "term": "definition", ... }},
+      "translated_sentence": "filled_sentence, but translated to {instruction_lang}",
       "grammar_focus": [ ... ]
     }}
 
     """
-
+  
     if recent_exercises:
         prompt += "\n## Session History:\n"
         for idx, ex in enumerate(recent_exercises[-3:], 1):
@@ -112,7 +113,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
             prompt += f"  Expected: {ex['expected_answer']}\n"
             prompt += f"  Result: {ex['result']}\n"
         prompt += "\nAvoid repeating prompts or patterns from the session history listed above.\n"
-
+    print(prompt)
 
     response_text = chat(
         messages=[
@@ -122,6 +123,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
         temperature=0.4
     )
 
+    print(response_text)
     try:
         return json.loads(sanitize_json_string(response_text))
     except json.JSONDecodeError:

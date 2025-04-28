@@ -45,7 +45,7 @@ def select_focus_areas(profile, max_targets=2):
             seen.add(g)
         if len(selected) >= max_targets:
             break
-
+    print(f"""select_focus_areas!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  {selected}""")   
     return selected
 
 def _get_weak_grammar_points(grammar_summary):
