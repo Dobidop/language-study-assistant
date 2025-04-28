@@ -1,1 +1,5 @@
 config.json
+*.pyc
+venv/
+sessions/
+enigne/__pycache__/

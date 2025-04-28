@@ -39,6 +39,13 @@ def run_session():
         "user_profile_updated": False
     }
 
+    # At the beginning of the session
+    starting_grammar_status = {
+        g: info.get("status", "new")
+        for g, info in profile.get("grammar_summary", {}).items()
+    }
+
+
     # Select grammar focus
     grammar_targets = select_focus_areas(profile)
     print(f"→ Today's grammar focus: {grammar_targets}\n")
@@ -135,13 +142,26 @@ def run_session():
     sorted_errors = sorted(error_counts.items(), key=lambda x: x[1], reverse=True)
     main_errors = [e[0] for e in sorted_errors[:3]]  # Top 3 error types
 
+
+    # Compare grammar promotions
+    ending_grammar_status = {
+        g: info.get("status", "new")
+        for g, info in profile.get("grammar_summary", {}).items()
+    }
+
+    promotions = 0
+    for g in starting_grammar_status:
+        if starting_grammar_status[g] != "strong" and ending_grammar_status.get(g) == "strong":
+            promotions += 1
+
     # Populate summary block
     session_log["summary"] = {
         "duration_minutes": session_duration,
         "total_exercises": total_exercises,
         "correct_exercises": correct_count,
         "accuracy_rate": round((correct_count / total_exercises) * 100, 1) if total_exercises > 0 else 0.0,
-        "main_errors": main_errors
+        "main_errors": main_errors,
+        "promotions": promotions
     }
 
     # Save session log

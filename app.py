@@ -38,16 +38,25 @@ class ExerciseSessionManager:
         correct_count = sum(1 for ex in self.current_session if ex.get("is_correct"))
         total_exercises = len(self.current_session)
 
+        # 🔥 Collect error counts
+        error_counts = {}
+        for ex in self.current_session:
+            for err in ex.get("error_analysis", []):
+                error_counts[err] = error_counts.get(err, 0) + 1
+
+        sorted_errors = sorted(error_counts.items(), key=lambda x: x[1], reverse=True)
+        main_errors = [e[0] for e in sorted_errors[:3]] if sorted_errors else []
+
         summary = {
             "duration_minutes": session_duration,
             "total_exercises": total_exercises,
             "correct_exercises": correct_count,
             "accuracy_rate": round((correct_count / total_exercises) * 100, 1) if total_exercises > 0 else 0.0,
+            "main_errors": main_errors
         }
 
-        # You could also log vocab or grammar points here if needed
 
-        # Save session log
+
         session_log = {
             "session_id": f"session_{datetime.now().strftime('%Y_%m_%d_%H%M')}",
             "user_id": self.profile.get("user_id", "user_001"),
@@ -61,7 +70,6 @@ class ExerciseSessionManager:
         # Reset
         self.current_session = []
         return summary
-
 
     def generate_exercise(self):
         from engine.generator import generate_exercise
@@ -99,10 +107,14 @@ class ExerciseSessionManager:
             grammar_focus=matching.get("grammar_focus", [])
         )
 
+        # 🔥 Fix: update the exercise with result
+        matching["is_correct"] = feedback["is_correct"]
+        matching["error_analysis"] = feedback["error_analysis"]
+        matching["corrected_answer"] = feedback.get("corrected_answer", "")
+
         # Track exercise result in profile immediately
         update_user_profile(self.profile, feedback, matching)
 
-        # Track for future history generation
         self.recent_exercises.append({
             "exercise_type": matching["exercise_type"],
             "prompt": matching["prompt"],
@@ -112,6 +124,7 @@ class ExerciseSessionManager:
         })
 
         return feedback
+
 
 def load_latest_session_summary():
     files = [f for f in os.listdir(SESSION_LOGS_DIR) if f.endswith(".json")]

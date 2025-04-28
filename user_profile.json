@@ -12,9 +12,10 @@
       "status": "moderate"
     },
     "polite_verb_forms": {
-      "exposure": 37,
-      "mistake_rate": 1.0,
-      "status": "weak"
+      "exposure": 44,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 5
     },
     "은_는_vs_이_가": {
       "exposure": 6,
@@ -25,6 +26,18 @@
       "exposure": 3,
       "mistake_rate": 0.15000000000000002,
       "status": "new"
+    },
+    "topic_particles": {
+      "exposure": 5,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 4
+    },
+    "subject_particles": {
+      "exposure": 5,
+      "mistake_rate": 0.0,
+      "status": "strong",
+      "recent_correct_streak": 4
     }
   },
   "common_errors": {
@@ -49,8 +62,8 @@
     "The correct verb for drinking liquids is '마시다,' so it should be '마셔요' in this context.": 1,
     "The verb '먹어요' means 'to eat', which is incorrect in this context.": 1,
     "The correct verb should be '읽어요', which means 'to read', because you read a book, not eat it.": 1,
-    "The verb '읽어요' means 'to read', which does not make sense with '물을' (water) as the object.": 1,
-    "The correct verb should be '마셔요', which means 'to drink', matching the object '물을' (water).": 1,
+    "The verb '읽어요' means 'to read', which does not make sense with '물을' (water) as the object.": 2,
+    "The correct verb should be '마셔요', which means 'to drink', matching the object '물을' (water).": 2,
     "The verb '읽어요' means 'to read,' but the sentence structure '도서관에 읽어요' is incorrect because '에' is a location particle used with verbs of movement like '가다' (to go).": 1,
     "To express 'I go to the library,' the correct verb is '가요' (to go), not '읽어요' (to read).": 1,
     "'가요' means 'to go', but the verb '마셔요' (to drink) is needed to match the object '물을' (water).": 1,
@@ -65,7 +78,11 @@
     "The correct verb for drinking is '마셔요,' which means 'to drink.'": 1,
     "The verb '먹어요' means 'to eat', which is not appropriate for water.": 2,
     "The verb '마셔요' (to drink, polite form) was misspelled as '마샤요'.": 1,
-    "'마셔요' is the correct conjugation of '마시다' in the present polite form.": 1
+    "'마셔요' is the correct conjugation of '마시다' in the present polite form.": 1,
+    "The verb '마샤요' is incorrect. The correct polite present tense form of '마시다' (to drink) is '마셔요'.": 1,
+    "The vowel 'ㅓ' should be used instead of 'ㅏ' in the verb ending for '마시다'.": 1,
+    "The user used the particle '에', which indicates location or direction (to/at/in), but in this sentence, the topic particle '는' is needed to indicate that 'the school' is the topic of the sentence.": 1,
+    "'커요' (is big) describes the school, so the sentence should use the topic particle to mean 'As for the school, it is big.'": 1
   },
   "vocabulary": {
     "core": {
