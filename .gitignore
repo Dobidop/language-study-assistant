@@ -1,5 +1,5 @@
-config.json
 *.pyc
 venv/
 sessions/
-enigne/__pycache__/
+*.env
+/engine/__pycache__

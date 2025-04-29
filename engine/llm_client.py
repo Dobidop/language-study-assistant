@@ -1,12 +1,21 @@
 import json
 import os
 import requests
+from dotenv import load_dotenv  # <-- new import
 
-# Load config once at module level
+# --- Load environment variables ---
+ENV_PATH = os.path.join(os.path.dirname(__file__), '..', 'api-key.env')
+load_dotenv(ENV_PATH)
+
+# --- Load config once ---
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
+# --- Preload and validate API key ---
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY is None:
+    raise EnvironmentError("Missing OPENAI_API_KEY environment variable. Please create 'api-key.env' and set it.")
 
 def chat(messages, provider=None, model=None, temperature=None):
     """
@@ -17,7 +26,7 @@ def chat(messages, provider=None, model=None, temperature=None):
 
     if provider == "openai":
         import openai
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY", config.get("openai_api_key")))
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
         response = client.chat.completions.create(
             model=model or config.get("openai_model", "gpt-4"),
