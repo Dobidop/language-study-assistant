@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+import openai
 from dotenv import load_dotenv  # <-- new import
 
 # --- Load environment variables ---
@@ -25,7 +26,7 @@ def chat(messages, provider=None, model=None, temperature=None):
     temperature = temperature if temperature is not None else config.get("temperature", 0.4)
 
     if provider == "openai":
-        import openai
+
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
         response = client.chat.completions.create(

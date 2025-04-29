@@ -1,12 +1,13 @@
 import json
 from engine.llm_client import chat
+from engine.generator import sanitize_json_string
 
 def evaluate_answer(prompt, user_answer, expected_answer, grammar_focus):
     """
     Send user answer to GPT along with prompt and expected answer for structured feedback.
     """
 
-    evaluation_prompt = f"""
+    evaluation_prompt = f"""/no_think
 You are a Korean language tutor assistant.
 Evaluate the user's answer to a language exercise and explain any mistakes.
 
@@ -34,9 +35,9 @@ Return your evaluation in the following JSON format:
         ],
         temperature=0.2
     )
-
+    
     try:
-        return json.loads(response_text)
+        return json.loads(sanitize_json_string(response_text))
     except json.JSONDecodeError:
         print("⚠️ GPT response was not valid JSON:")
         print(response_text)

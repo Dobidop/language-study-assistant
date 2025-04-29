@@ -141,7 +141,7 @@ manager.start_new_session()
 
 @app.route("/")
 def serve_index():
-    return send_from_directory("web", "summary.html")
+    return send_from_directory("web", "dashboard.html")
 
 
 @app.route("/api/session/start", methods=["POST"])

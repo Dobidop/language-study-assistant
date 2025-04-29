@@ -1,50 +1,305 @@
 {
-  "language": "Korean",
-  "levels": {
-    "beginner": {
-      "description": "Beginner-level Korean grammar points for basic communication.",
-      "grammar_points": [
+    "grammar_points": [
         {
-          "id": "object_particles",
-          "name": "Object Particles (을/를)",
-          "notes": "Marking the object of a sentence."
+            "description": "To be (am/is/are) — polite form",
+            "id": "-이에요/예요",
+            "learning_order": 1,
+            "level": "beginner"
         },
         {
-          "id": "subject_particles",
-          "name": "Subject Particles (이/가)",
-          "notes": "Marking the subject of a sentence."
+            "description": "Present tense polite endings",
+            "id": "-아요/어요",
+            "learning_order": 2,
+            "level": "beginner"
         },
         {
-          "id": "topic_particles",
-          "name": "Topic Particles (은/는)",
-          "notes": "Marking the topic or contrast."
+            "description": "Topic marking particle",
+            "id": "-은/는",
+            "learning_order": 3,
+            "level": "beginner"
         },
         {
-          "id": "polite_verb_forms",
-          "name": "Polite Verb Endings (~어요/아요)",
-          "notes": "Basic polite speech style."
+            "description": "Subject marking particle",
+            "id": "-이/가",
+            "learning_order": 4,
+            "level": "beginner"
         },
         {
-          "id": "location_particles",
-          "name": "Location Particles (에, 에서)",
-          "notes": "Marking where something is or happens."
+            "description": "Object marking particle",
+            "id": "-을/를",
+            "learning_order": 5,
+            "level": "beginner"
         },
         {
-          "id": "basic_questions",
-          "name": "Question Words (뭐, 어디, 누구)",
-          "notes": "Forming simple questions."
+            "description": "Location particle (at, to, on)",
+            "id": "-에",
+            "learning_order": 6,
+            "level": "beginner"
         },
         {
-          "id": "command_forms",
-          "name": "Command/Request Forms (으세요)",
-          "notes": "Polite commands and requests."
+            "description": "Location particle (action place / from)",
+            "id": "-에서",
+            "learning_order": 7,
+            "level": "beginner"
         },
         {
-          "id": "basic_tenses",
-          "name": "Present and Past Tenses",
-          "notes": "Talking about present and past actions."
+            "description": "And (connecting nouns)",
+            "id": "-하고",
+            "learning_order": 8,
+            "level": "beginner"
+        },
+        {
+            "description": "Also, too",
+            "id": "-도",
+            "learning_order": 9,
+            "level": "beginner"
+        },
+        {
+            "description": "Possessive particle (of)",
+            "id": "-의",
+            "learning_order": 10,
+            "level": "beginner"
+        },
+        {
+            "description": "Honorific polite command",
+            "id": "-(으)세요",
+            "learning_order": 11,
+            "level": "beginner"
+        },
+        {
+            "description": "And (connecting actions/verbs)",
+            "id": "-고",
+            "learning_order": 12,
+            "level": "beginner"
+        },
+        {
+            "description": "Negative verb ending (don't, doesn't)",
+            "id": "-지 않아요",
+            "learning_order": 13,
+            "level": "beginner"
+        },
+        {
+            "description": "To want to do something",
+            "id": "-고 싶다",
+            "learning_order": 14,
+            "level": "beginner"
+        },
+        {
+            "description": "Direction or means particle",
+            "id": "-(으)로",
+            "learning_order": 15,
+            "level": "beginner"
+        },
+        {
+            "description": "Must, have to",
+            "id": "-아/어야 해요",
+            "learning_order": 16,
+            "level": "beginner"
+        },
+        {
+            "description": "Or (connecting verbs/actions)",
+            "id": "-거나",
+            "learning_order": 17,
+            "level": "beginner"
+        },
+        {
+            "description": "While doing something",
+            "id": "-(으)면서",
+            "learning_order": 18,
+            "level": "beginner"
+        },
+        {
+            "description": "Because, so (giving a reason)",
+            "id": "-(으)니까",
+            "learning_order": 19,
+            "level": "beginner"
+        },
+        {
+            "description": "So, because (connective reason or sequence)",
+            "id": "-아/어서",
+            "learning_order": 20,
+            "level": "beginner"
+        },
+        {
+            "description": "But, although (contrasting two ideas)",
+            "id": "-지만",
+            "learning_order": 21,
+            "level": "beginner"
+        },
+        {
+            "description": "After doing something",
+            "id": "-(으)ㄴ 다음에",
+            "learning_order": 22,
+            "level": "beginner"
+        },
+        {
+            "description": "Before doing something",
+            "id": "-기 전에",
+            "learning_order": 23,
+            "level": "beginner"
+        },
+        {
+            "description": "Past tense polite endings",
+            "id": "-았어요/었어요",
+            "learning_order": 24,
+            "level": "beginner"
+        },
+        {
+            "description": "Future tense expression",
+            "id": "-(으)ㄹ 거예요",
+            "learning_order": 25,
+            "level": "beginner"
+        },
+        {
+            "description": "When (doing something)",
+            "id": "-(으)ㄹ 때",
+            "learning_order": 26,
+            "level": "beginner"
+        },
+        {
+            "description": "Nominalization (turning verbs into nouns)",
+            "id": "-는 것",
+            "learning_order": 27,
+            "level": "beginner"
+        },
+        {
+            "description": "Progressive tense (be doing something)",
+            "id": "-고 있다",
+            "learning_order": 28,
+            "level": "beginner"
+        },
+        {
+            "description": "To try doing something",
+            "id": "-아/어 보다",
+            "learning_order": 29,
+            "level": "beginner"
+        },
+        {
+            "description": "Have the experience of doing something",
+            "id": "-(으)ㄴ 적이 있다",
+            "learning_order": 30,
+            "level": "beginner"
+        },
+        {
+            "description": "To intend, to plan to",
+            "id": "-(으)려고 하다",
+            "learning_order": 31,
+            "level": "beginner"
+        },
+        {
+            "description": "If/when (conditional)",
+            "id": "-(으)면",
+            "learning_order": 32,
+            "level": "beginner"
+        },
+        {
+            "description": "Cannot (polite negation for ability)",
+            "id": "-지 못하다",
+            "learning_order": 33,
+            "level": "beginner"
+        },
+        {
+            "description": "Can / cannot (ability or possibility)",
+            "id": "-(으)ㄹ 수 있다/없다",
+            "learning_order": 34,
+            "level": "beginner"
+        },
+        {
+            "description": "Starting from (time/place)",
+            "id": "-부터",
+            "learning_order": 35,
+            "level": "beginner"
+        },
+        {
+            "description": "Until, up to (time/place)",
+            "id": "-까지",
+            "learning_order": 36,
+            "level": "beginner"
+        },
+        {
+            "description": "It seems like, I think that",
+            "id": "-(으)ㄴ/는 것 같다",
+            "learning_order": 37,
+            "level": "beginner"
+        },
+        {
+            "description": "Adverbial ending (modifying verbs)",
+            "id": "-게",
+            "learning_order": 38,
+            "level": "beginner"
+        },
+        {
+            "description": "Because of (noun clauses)",
+            "id": "-기 때문에",
+            "learning_order": 39,
+            "level": "beginner"
+        },
+        {
+            "description": "I will (promise, soft future)",
+            "id": "-(으)ㄹ게요",
+            "learning_order": 40,
+            "level": "beginner"
+        },
+        {
+            "description": "Question ending (polite, curious)",
+            "id": "-나요?",
+            "learning_order": 41,
+            "level": "beginner"
+        },
+        {
+            "description": "Please do (asking favor politely)",
+            "id": "-아/어 주세요",
+            "learning_order": 42,
+            "level": "beginner"
+        },
+        {
+            "description": "After doing something, then...",
+            "id": "-고 나서",
+            "learning_order": 43,
+            "level": "beginner"
+        },
+        {
+            "description": "Nominalization for descriptive verbs",
+            "id": "-은/는 것",
+            "learning_order": 44,
+            "level": "beginner"
+        },
+        {
+            "description": "Since (time expressions for how long)",
+            "id": "-(으)ㄴ 지",
+            "learning_order": 45,
+            "level": "beginner"
+        },
+        {
+            "description": "Is it okay to...? (asking permission)",
+            "id": "-아/어도 돼요",
+            "learning_order": 46,
+            "level": "beginner"
+        },
+        {
+            "description": "Please don't (polite prohibition)",
+            "id": "-지 마세요",
+            "learning_order": 47,
+            "level": "beginner"
+        },
+        {
+            "description": "Only, nothing but (negative limitation)",
+            "id": "-밖에",
+            "learning_order": 48,
+            "level": "beginner"
+        },
+        {
+            "description": "There is nothing but, only have",
+            "id": "-밖에 없다",
+            "learning_order": 49,
+            "level": "beginner"
+        },
+        {
+            "description": "Go/come by (direction/method particle usage)",
+            "id": "-(으)로 가다/오다",
+            "learning_order": 50,
+            "level": "beginner"
         }
-      ]
-    }
-  }
+    ],
+    "language": "Korean"
 }

@@ -1,87 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Language Study Assistant</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f9f9f9;
-        }
-        h1 {
-            text-align: center;
-        }
-        #exercise, #feedback, #glossary, #grammarFocus, #translationBox {
-            margin: 20px 0;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-        input[type="text"] {
-            width: 90%;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #feedback.correct {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        #feedback.incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        #progress {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Language Study Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px auto;
+      background-color: #f9f9f9;
+      max-width: 800px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #exercise, #feedback, #glossary, #grammarFocus, #translationBox {
+      margin: 20px 0;
+      padding: 20px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 500px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #feedback.correct {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    #feedback.incorrect {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    #progress {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    #backButton {
+      display: block;
+      margin: 20px auto;
+      text-align: center;
+      background-color: #ccc;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #backButton:hover {
+      background-color: #aaa;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Language Study Assistant</h1>
+<h1>Language Study Assistant</h1>
 
-    <div id="progress">Session not started</div>
+<div id="progress">Session not started</div>
 
-    <div id="exercise">
-        <strong>Exercise:</strong> 
-        <p id="prompt">Press "Start New Session" to begin!</p>
-        <input type="text" id="userAnswer" placeholder="Type your answer..." disabled>
-    </div>
+<div id="exercise">
+  <strong>Exercise:</strong> 
+  <p id="prompt">Press "Start New Session" to begin!</p>
+  <input type="text" id="userAnswer" placeholder="Type your answer..." disabled>
+  <br>
+  <button id="submitAnswerBtn" disabled>Submit Answer</button>
+</div>
 
-    <div id="translationBox" style="display: none;">
-      <strong>Meaning:</strong>
-      <p id="translatedSentence"></p>
-    </div>
+<div id="translationBox" style="display: none;">
+  <strong>Meaning:</strong>
+  <p id="translatedSentence"></p>
+</div>
 
-    <div id="glossary" style="display: none;">
-        <strong>Vocabulary:</strong>
-        <ul id="glossaryList"></ul>
-    </div>
+<div id="glossary" style="display: none;">
+  <strong>Vocabulary:</strong>
+  <ul id="glossaryList"></ul>
+</div>
 
-    <div id="grammarFocus" style="display: none;">
-        <strong>Focus:</strong> 
-        <span id="grammarList"></span>
-    </div>
+<div id="grammarFocus" style="display: none;">
+  <strong>Focus:</strong> 
+  <span id="grammarList"></span>
+</div>
 
-    <div id="feedback" style="display: none;"></div>
+<div id="feedback" style="display: none;"></div>
 
-    <div id="controls">
-        <button id="startSessionBtn">Start New Session</button>
-        <button id="endSessionBtn" disabled>End Session</button>
-    </div>
+<div id="controls">
+  <button id="startSessionBtn">Start New Session</button>
+  <button id="endSessionBtn" disabled>End Session</button>
+  <button id="backButton" onclick="goBack()">Back to Dashboard</button>
+</div>
 
 <script>
 let currentExerciseId = null;
@@ -90,12 +109,17 @@ let exercisesCompleted = 0;
 
 document.getElementById("startSessionBtn").addEventListener("click", startSession);
 document.getElementById("endSessionBtn").addEventListener("click", endSession);
+document.getElementById("submitAnswerBtn").addEventListener("click", submitAnswer);
 document.getElementById("userAnswer").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        submitAnswer();
-    }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitAnswer();
+  }
 });
+
+function goBack() {
+  window.location.href = "dashboard.html";
+}
 
 async function startSession() {
   const response = await fetch("/api/session/start", { method: "POST" });
@@ -122,7 +146,7 @@ async function endSession() {
     document.getElementById("feedback").style.display = "none";
 
     alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
-    window.location.href = "summary.html";
+    window.location.href = "dashboard.html";
   } else {
     alert("Failed to end session properly.");
   }
@@ -140,42 +164,42 @@ async function fetchNewExercise() {
     currentExerciseId = data.exercise.exercise_id;
     document.getElementById("userAnswer").value = "";
     document.getElementById("userAnswer").disabled = false;
+    document.getElementById("submitAnswerBtn").disabled = false;
     document.getElementById("userAnswer").focus();
     document.getElementById("feedback").style.display = "none";
 
     // Update progress
     document.getElementById("progress").textContent = `Exercise ${exercisesCompleted}`;
 
-    // Show glossary if available
+    // Show glossary
     if (data.exercise.glossary) {
-        const glossaryList = document.getElementById("glossaryList");
-        glossaryList.innerHTML = "";
-        for (const [word, meaning] of Object.entries(data.exercise.glossary)) {
-            const li = document.createElement("li");
-            li.textContent = `${word}: ${meaning}`;
-            glossaryList.appendChild(li);
-        }
-        document.getElementById("glossary").style.display = "block";
+      const glossaryList = document.getElementById("glossaryList");
+      glossaryList.innerHTML = "";
+      for (const [word, meaning] of Object.entries(data.exercise.glossary)) {
+        const li = document.createElement("li");
+        li.textContent = `${word}: ${meaning}`;
+        glossaryList.appendChild(li);
+      }
+      document.getElementById("glossary").style.display = "block";
     } else {
-        document.getElementById("glossary").style.display = "none";
+      document.getElementById("glossary").style.display = "none";
     }
 
-    // Show grammar focus if available
+    // Show grammar focus
     if (data.exercise.grammar_focus) {
-        document.getElementById("grammarList").textContent = data.exercise.grammar_focus.join(", ");
-        document.getElementById("grammarFocus").style.display = "block";
+      document.getElementById("grammarList").textContent = data.exercise.grammar_focus.join(", ");
+      document.getElementById("grammarFocus").style.display = "block";
     } else {
-        document.getElementById("grammarFocus").style.display = "none";
+      document.getElementById("grammarFocus").style.display = "none";
     }
 
-    // Show translated sentence if available
+    // Show translated sentence
     if (data.exercise.translated_sentence) {
-        document.getElementById("translatedSentence").textContent = data.exercise.translated_sentence;
-        document.getElementById("translationBox").style.display = "block";
+      document.getElementById("translatedSentence").textContent = data.exercise.translated_sentence;
+      document.getElementById("translationBox").style.display = "block";
     } else {
-        document.getElementById("translationBox").style.display = "none";
+      document.getElementById("translationBox").style.display = "none";
     }
-
 
   } else {
     document.getElementById("prompt").textContent = "⚠️ Could not load exercise.";
@@ -184,7 +208,10 @@ async function fetchNewExercise() {
 
 async function submitAnswer() {
   const userAnswer = document.getElementById("userAnswer").value.trim();
-  if (!currentExerciseId || !userAnswer) return;
+  if (!currentExerciseId || !userAnswer) {
+    alert("Please enter your answer before submitting.");
+    return;
+  }
 
   const response = await fetch("/api/exercise/answer", {
     method: "POST",
@@ -202,10 +229,10 @@ async function submitAnswer() {
   if (data.feedback) {
     if (data.feedback.is_correct) {
       feedbackDiv.innerHTML = `<p class="correct">✅ Correct!</p>`;
-      setTimeout(fetchNewExercise, 1500);
+      setTimeout(fetchNewExercise, 1500); // Move to next
     } else {
       feedbackDiv.innerHTML = `
-        <p class="wrong">❌ Not quite right.</p>
+        <p class="incorrect">❌ Not quite right.</p>
         <p><strong>Suggested Correction:</strong> ${data.feedback.corrected_answer}</p>
         <p><strong>Explanation:</strong></p>
         <ul>
@@ -214,8 +241,14 @@ async function submitAnswer() {
       `;
     }
   } else {
-    feedbackDiv.innerHTML = `<p class="wrong">⚠️ Could not evaluate answer.</p>`;
+    feedbackDiv.innerHTML = `<p class="incorrect">⚠️ Could not evaluate answer.</p>`;
   }
+}
+
+// --- Detect ?start=1 from Dashboard ---
+const params = new URLSearchParams(window.location.search);
+if (params.get("start") === "1") {
+  startSession();
 }
 </script>
 

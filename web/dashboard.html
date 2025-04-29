@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Korean Study Assistant - Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .summary, .history {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+    }
+    .correct { color: green; }
+    .warning { color: darkorange; }
+    .error { color: red; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th { background-color: #f2f2f2; }
+    #studyButton {
+      display: block;
+      margin: 2rem auto;
+      padding: 1rem 2rem;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #studyButton:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📚 Korean Study Assistant Dashboard</h1>
+
+<section class="summary">
+  <h2>📖 Latest Session Summary</h2>
+  <div id="summary">Loading...</div>
+</section>
+
+<section class="history">
+  <h2>📈 Study History</h2>
+  <table id="history">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Exercises Completed</th>
+        <th>Accuracy</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="3">Loading history...</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<button id="studyButton" onclick="goStudy()">Start Studying</button>
+
+<script>
+async function fetchSessionSummary() {
+  try {
+    const response = await fetch("/api/session/summary");
+    const summaryDiv = document.getElementById("summary");
+    if (!response.ok) {
+      summaryDiv.innerHTML = "⚠️ No session summary available.";
+      return;
+    }
+    const data = await response.json();
+    const summary = data.summary;
+
+    let colorClass = "correct";
+    if (summary.accuracy_rate < 60) colorClass = "error";
+    else if (summary.accuracy_rate < 80) colorClass = "warning";
+
+    summaryDiv.innerHTML = `
+      <p><strong>Exercises Completed:</strong> ${summary.total_exercises}</p>
+      <p><strong>Duration:</strong> ${summary.duration_minutes} minutes</p>
+      <p><strong>Correct Answers:</strong> <span class="${colorClass}">${summary.correct_exercises} (${summary.accuracy_rate}%)</span></p>
+      <p><strong>Common Mistakes:</strong></p>
+      <ul>
+        ${(summary.main_errors || []).map(err => `<li>${err}</li>`).join("")}
+      </ul>
+    `;
+  } catch (error) {
+    document.getElementById("summary").innerHTML = "⚠️ Error loading session summary.";
+    console.error(error);
+  }
+}
+
+async function fetchSessionHistory() {
+  try {
+    const response = await fetch("/api/session/history");
+    const tbody = document.querySelector("#history tbody");
+    if (!response.ok) {
+      tbody.innerHTML = "<tr><td colspan='3'>⚠️ No session history available.</td></tr>";
+      return;
+    }
+    const data = await response.json();
+    const sessions = data.sessions;
+    if (sessions.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='3'>⚠️ No session history available.</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = sessions.map(session => {
+      let colorClass = "correct";
+      if (session.accuracy_rate < 60) colorClass = "error";
+      else if (session.accuracy_rate < 80) colorClass = "warning";
+
+      return `
+        <tr>
+          <td>${session.date}</td>
+          <td>${session.total_exercises}</td>
+          <td class="${colorClass}">${session.accuracy_rate}%</td>
+        </tr>
+      `;
+    }).join("");
+  } catch (error) {
+    document.querySelector("#history tbody").innerHTML = "<tr><td colspan='3'>⚠️ Error loading history.</td></tr>";
+    console.error(error);
+  }
+}
+
+function goStudy() {
+  window.location.href = "study.html?start=1";
+}
+
+fetchSessionSummary();
+fetchSessionHistory();
+</script>
+
+</body>
+</html>

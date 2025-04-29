@@ -40,7 +40,7 @@ def save_user_profile(profile, path=PROFILE_PATH):
     print(f"✅ User profile saved to {path}")
 
 def update_user_profile(profile, feedback, exercise):
-    """Smarter update: Adjust grammar progression based on user performance."""
+    """Update the user profile with a gradual grammar mastery progression."""
 
     # === Update Grammar Summary ===
     for g in exercise.get("grammar_focus", []):
@@ -48,47 +48,34 @@ def update_user_profile(profile, feedback, exercise):
         summary = profile.setdefault("grammar_summary", {})
         entry = summary.setdefault(g_key, {
             "exposure": 0,
-            "mistake_rate": 0.0,
             "status": "new",
             "recent_correct_streak": 0
         })
-        
-        # Ensure recent_correct_streak field exists for backward compatibility
-        if "recent_correct_streak" not in entry:
-            entry["recent_correct_streak"] = 0
 
+        # --- New progression logic ---
+        stages = ["new", "new_weak", "weak", "weak_medium", "medium", "medium_strong", "strong"]
+        current_stage = entry.get("status", "new")
+        if current_stage not in stages:
+            current_stage = "new"
+
+        idx = stages.index(current_stage)
 
         # Always increment exposure
         entry["exposure"] += 1
 
-        # Determine if this mistake relates to this grammar
-        grammar_mistake = any(g.replace("_", " ") in err.lower() for err in feedback.get("error_analysis", []))
-
+        # Correct vs Mistake handling
         if feedback["is_correct"]:
-            # Correct answer: improve!
             entry["recent_correct_streak"] += 1
-            entry["mistake_rate"] = max(0.0, entry["mistake_rate"] - 0.05)
+            # Promote after 2 consecutive corrects
+            if entry["recent_correct_streak"] >= 2 and idx < len(stages) - 1:
+                idx += 1
+                entry["recent_correct_streak"] = 0  # Reset streak after promotion
         else:
-            # Mistake: only update if grammar mistake detected
-            if grammar_mistake:
-                entry["recent_correct_streak"] = 0
-                # Critical mistakes can add more penalty later (simple +0.1 for now)
-                entry["mistake_rate"] = min(1.0, entry["mistake_rate"] + 0.1)
+            entry["recent_correct_streak"] = 0
+            if idx > 1:  # Don't demote back to "new"
+                idx -= 1
 
-        # Fast recovery rule
-        if entry["recent_correct_streak"] >= 3:
-            entry["status"] = "strong"
-            entry["mistake_rate"] = min(entry["mistake_rate"], 0.05)  # Force near 0
-        else:
-            # Normal status updates
-            if entry["mistake_rate"] > 0.5:
-                entry["status"] = "very_weak"
-            elif entry["mistake_rate"] > 0.25:
-                entry["status"] = "weak"
-            elif entry["mistake_rate"] < 0.1:
-                entry["status"] = "strong"
-            else:
-                entry["status"] = "moderate"
+        entry["status"] = stages[idx]
 
     # === Update Common Errors ===
     for err in feedback.get("error_analysis", []):
@@ -116,3 +103,4 @@ def update_user_profile(profile, feedback, exercise):
 
     # === Save Updated Profile ===
     save_user_profile(profile)
+

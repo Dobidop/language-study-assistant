@@ -16,13 +16,7 @@ def load_curriculum(language="korean"):
         return json.load(f)
 
 def get_grammar_points_by_level(curriculum, level="beginner"):
-    """
-    Get a list of grammar point IDs for a given level.
-    """
-    levels = curriculum.get("levels", {})
-    level_data = levels.get(level)
+    # 🚨 NEW: Match flat grammar_points structure
+    all_points = curriculum.get("grammar_points", [])
 
-    if not level_data:
-        raise ValueError(f"Level '{level}' not found in curriculum.")
-
-    return [gp["id"] for gp in level_data.get("grammar_points", [])]
+    return [gp for gp in all_points if gp.get("level") == level]
