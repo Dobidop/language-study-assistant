@@ -2,4 +2,5 @@
 venv/
 sessions/
 *.env
+api-key.env
 /engine/__pycache__
