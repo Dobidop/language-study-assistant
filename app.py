@@ -10,7 +10,7 @@ from engine.evaluator import evaluate_answer, build_filled_sentence
 from engine.logger import log_exercise_to_session
 
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__, static_folder="web", static_url_path="/")
 
 SESSION_LOGS_DIR = "sessions"
 
@@ -141,7 +141,7 @@ manager.start_new_session()
 
 @app.route("/")
 def serve_index():
-    return send_from_directory(".", "summary.html")
+    return send_from_directory("web", "summary.html")
 
 
 @app.route("/api/session/start", methods=["POST"])

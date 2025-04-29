@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Language Study Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+        }
+        #exercise, #feedback, #glossary, #grammarFocus, #translationBox {
+            margin: 20px 0;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 90%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #feedback.correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        #feedback.incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #progress {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Language Study Assistant</h1>
+
+    <div id="progress">Session not started</div>
+
+    <div id="exercise">
+        <strong>Exercise:</strong> 
+        <p id="prompt">Press "Start New Session" to begin!</p>
+        <input type="text" id="userAnswer" placeholder="Type your answer..." disabled>
+    </div>
+
+    <div id="translationBox" style="display: none;">
+      <strong>Meaning:</strong>
+      <p id="translatedSentence"></p>
+    </div>
+
+    <div id="glossary" style="display: none;">
+        <strong>Vocabulary:</strong>
+        <ul id="glossaryList"></ul>
+    </div>
+
+    <div id="grammarFocus" style="display: none;">
+        <strong>Focus:</strong> 
+        <span id="grammarList"></span>
+    </div>
+
+    <div id="feedback" style="display: none;"></div>
+
+    <div id="controls">
+        <button id="startSessionBtn">Start New Session</button>
+        <button id="endSessionBtn" disabled>End Session</button>
+    </div>
+
+<script>
+let currentExerciseId = null;
+let sessionActive = false;
+let exercisesCompleted = 0;
+
+document.getElementById("startSessionBtn").addEventListener("click", startSession);
+document.getElementById("endSessionBtn").addEventListener("click", endSession);
+document.getElementById("userAnswer").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        submitAnswer();
+    }
+});
+
+async function startSession() {
+  const response = await fetch("/api/session/start", { method: "POST" });
+  if (response.ok) {
+    sessionActive = true;
+    exercisesCompleted = 0;
+    document.getElementById("startSessionBtn").disabled = true;
+    document.getElementById("endSessionBtn").disabled = false;
+    document.getElementById("exercise").style.display = "block";
+    fetchNewExercise();
+  } else {
+    alert("Failed to start session.");
+  }
+}
+
+async function endSession() {
+  const response = await fetch("/api/session/end", { method: "POST" });
+  if (response.ok) {
+    const data = await response.json();
+    sessionActive = false;
+    document.getElementById("startSessionBtn").disabled = false;
+    document.getElementById("endSessionBtn").disabled = true;
+    document.getElementById("exercise").style.display = "none";
+    document.getElementById("feedback").style.display = "none";
+
+    alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
+    window.location.href = "summary.html";
+  } else {
+    alert("Failed to end session properly.");
+  }
+}
+
+async function fetchNewExercise() {
+  if (!sessionActive) return;
+
+  const response = await fetch("/api/exercise/new", { method: "POST" });
+  const data = await response.json();
+
+  if (data.exercise) {
+    exercisesCompleted++;
+    document.getElementById("prompt").textContent = data.exercise.prompt;
+    currentExerciseId = data.exercise.exercise_id;
+    document.getElementById("userAnswer").value = "";
+    document.getElementById("userAnswer").disabled = false;
+    document.getElementById("userAnswer").focus();
+    document.getElementById("feedback").style.display = "none";
+
+    // Update progress
+    document.getElementById("progress").textContent = `Exercise ${exercisesCompleted}`;
+
+    // Show glossary if available
+    if (data.exercise.glossary) {
+        const glossaryList = document.getElementById("glossaryList");
+        glossaryList.innerHTML = "";
+        for (const [word, meaning] of Object.entries(data.exercise.glossary)) {
+            const li = document.createElement("li");
+            li.textContent = `${word}: ${meaning}`;
+            glossaryList.appendChild(li);
+        }
+        document.getElementById("glossary").style.display = "block";
+    } else {
+        document.getElementById("glossary").style.display = "none";
+    }
+
+    // Show grammar focus if available
+    if (data.exercise.grammar_focus) {
+        document.getElementById("grammarList").textContent = data.exercise.grammar_focus.join(", ");
+        document.getElementById("grammarFocus").style.display = "block";
+    } else {
+        document.getElementById("grammarFocus").style.display = "none";
+    }
+
+    // Show translated sentence if available
+    if (data.exercise.translated_sentence) {
+        document.getElementById("translatedSentence").textContent = data.exercise.translated_sentence;
+        document.getElementById("translationBox").style.display = "block";
+    } else {
+        document.getElementById("translationBox").style.display = "none";
+    }
+
+
+  } else {
+    document.getElementById("prompt").textContent = "⚠️ Could not load exercise.";
+  }
+}
+
+async function submitAnswer() {
+  const userAnswer = document.getElementById("userAnswer").value.trim();
+  if (!currentExerciseId || !userAnswer) return;
+
+  const response = await fetch("/api/exercise/answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      exercise_id: currentExerciseId,
+      user_answer: userAnswer
+    })
+  });
+
+  const data = await response.json();
+  const feedbackDiv = document.getElementById("feedback");
+  feedbackDiv.style.display = "block";
+
+  if (data.feedback) {
+    if (data.feedback.is_correct) {
+      feedbackDiv.innerHTML = `<p class="correct">✅ Correct!</p>`;
+      setTimeout(fetchNewExercise, 1500);
+    } else {
+      feedbackDiv.innerHTML = `
+        <p class="wrong">❌ Not quite right.</p>
+        <p><strong>Suggested Correction:</strong> ${data.feedback.corrected_answer}</p>
+        <p><strong>Explanation:</strong></p>
+        <ul>
+          ${data.feedback.error_analysis.map(err => `<li>${err}</li>`).join("")}
+        </ul>
+      `;
+    }
+  } else {
+    feedbackDiv.innerHTML = `<p class="wrong">⚠️ Could not evaluate answer.</p>`;
+  }
+}
+</script>
+
+</body>
+</html>
