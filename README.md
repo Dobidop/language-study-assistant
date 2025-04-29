@@ -30,19 +30,29 @@
    cd korean-study-assistant
    ```
 
-2. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Setup environment:
+   - On **Windows**, you can simply run:
+     ```bash
+     setup.bat
+     ```
+     This will create a virtual environment, activate it, and install the required dependencies.
+
+   - On **Linux/macOS** or if `setup.bat` doesn't work, follow these steps manually:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install -r requirements.txt
+     ```
 
 3. Configure your environment:
-   - Create an `.env` file (copy from `api-key.env.example`) and add your OpenAI API key if using OpenAI.
-   - Example:
+   - Rename the `api-key.env.example` file to `api-key.env`.
+   - Open `api-key.env` and add your OpenAI API key:
      ```
      OPENAI_API_KEY=your_openai_api_key_here
      ```
 
 4. (Optional) Edit `config.json` to adjust model/provider settings.
+
 
 ---
 
