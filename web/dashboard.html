@@ -53,6 +53,83 @@
 
 <h1>📚 Korean Study Assistant Dashboard</h1>
 
+<button id="studyButton" onclick="goStudy()">Start Studying</button>
+<br>
+<section class="llm-settings">
+  <h2>🤖 Language Model Settings</h2>
+
+  <label for="providerSelect">Provider:</label>
+  <select id="providerSelect" onchange="toggleProviderOptions()">
+    <option value="openai">OpenAI</option>
+    <option value="local">Local</option>
+  </select><br><br>
+
+  <!-- OpenAI Model Selection -->
+  <div id="openaiSettings">
+    <label for="openaiModelSelect">OpenAI Model (price from 2025-04-29):</label>
+    <select id="openaiModelSelect">
+      <option value="gpt-4.1-mini">gpt-4.1-mini ($0.40 input / $1.60 output) (standard)</option>
+      <option value="gpt-4.1">gpt-4.1 ($2.00 input / $8.00 output)</option>
+      <option value="gpt-4.1-nano">gpt-4.1-nano ($0.10 input / $0.40 output)</option>
+      <option value="gpt-4o">gpt-4o ($2.50 input / $10.00 output)</option>
+      <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview ($5.00 input / $20.00 output)</option>
+      <option value="gpt-4o-mini">gpt-4o-mini ($0.15 input / $0.60 output)</option>
+      <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview ($0.60 input / $2.40 output)</option>
+      <option value="o4-mini">o4-mini ($1.10 input / $4.40 output)</option>
+      <option value="o3-mini">o3-mini ($1.10 input / $4.40 output)</option>
+      <option value="o1-mini">o1-mini ($1.10 input / $4.40 output)</option>
+    </select><br><br>
+  </div>
+
+  <!-- Local Model Settings -->
+  <div id="localSettings" style="display: none;">
+    <label for="localPort">Local Port:</label>
+    <input type="text" id="localPort" value="1234"><br><br>
+
+    <label for="localModel">Local Model Name:</label>
+    <input type="text" id="localModel" value="qwen3-30b-a3b"><br><br>
+  </div>
+
+  <button onclick="saveLLMConfig()">Save LLM Config</button>
+</section>
+
+<script>
+function toggleProviderOptions() {
+  const provider = document.getElementById("providerSelect").value;
+  if (provider === "openai") {
+    document.getElementById("openaiSettings").style.display = "block";
+    document.getElementById("localSettings").style.display = "none";
+  } else {
+    document.getElementById("openaiSettings").style.display = "none";
+    document.getElementById("localSettings").style.display = "block";
+  }
+}
+
+function saveLLMConfig() {
+  const provider = document.getElementById("providerSelect").value;
+  const config = { provider };
+
+  if (provider === "openai") {
+    config.model = document.getElementById("openaiModelSelect").value;
+  } else if (provider === "local") {
+    config.port = document.getElementById("localPort").value;
+    config.model = document.getElementById("localModel").value;
+  }
+
+  fetch("/api/config/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config)
+  })
+  .then(res => res.ok ? alert("Settings saved!") : alert("Failed to save"))
+  .catch(err => alert("Error: " + err));
+}
+
+// Preload correct fields based on current provider
+toggleProviderOptions();
+</script>
+<br>
+
 <section class="summary">
   <h2>📖 Latest Session Summary</h2>
   <div id="summary">Loading...</div>
@@ -74,7 +151,7 @@
   </table>
 </section>
 
-<button id="studyButton" onclick="goStudy()">Start Studying</button>
+
 
 <script>
 async function fetchSessionSummary() {

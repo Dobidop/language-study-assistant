@@ -2,13 +2,13 @@ import json
 from engine.llm_client import chat
 from engine.generator import sanitize_json_string
 
-def evaluate_answer(prompt, user_answer, expected_answer, grammar_focus):
+def evaluate_answer(prompt, user_answer, expected_answer, grammar_focus, target_language="Korean"):
     """
     Send user answer to GPT along with prompt and expected answer for structured feedback.
     """
 
     evaluation_prompt = f"""/no_think
-You are a Korean language tutor assistant.
+You are a {target_language} language tutor assistant.
 Evaluate the user's answer to a language exercise and explain any mistakes.
 
 ## Exercise:
@@ -30,7 +30,7 @@ Return your evaluation in the following JSON format:
 
     response_text = chat(
         messages=[
-            {"role": "system", "content": "You are a helpful Korean tutor assistant."},
+            {"role": "system", "content": f"""You are a helpful {target_language} tutor assistant."""},
             {"role": "user", "content": evaluation_prompt.strip()}
         ],
         temperature=0.2

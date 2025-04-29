@@ -1,23 +1,15 @@
 from collections import defaultdict
 from engine.curriculum import load_curriculum, get_grammar_points_by_level
 
-# Load curriculum once when module loads
-CURRICULUM = load_curriculum("korean")
-
 def select_focus_areas(profile, max_targets=2):
-    """
-    Select grammar points for the next session:
-    - Prioritize weak points.
-    - If weak points are handled, introduce missing curriculum grammar.
-    - Limit new grammar introduction if unresolved weak points exist.
-    """
+    target_language = profile.get("target_language", "korean").lower()
+    curriculum = load_curriculum(target_language)
 
     grammar_summary = profile.get("grammar_summary", {})
     seen_grammar = set(profile.get("session_tracking", {}).get("grammar_points_seen", []))
 
-    # Get full grammar point entries now
     user_level = profile.get("level", "beginner")
-    curriculum_points = get_grammar_points_by_level(CURRICULUM, user_level)
+    curriculum_points = get_grammar_points_by_level(curriculum, user_level)
 
     # Map IDs to full entries for easier lookup
     id_to_entry = {gp["id"]: gp for gp in curriculum_points}

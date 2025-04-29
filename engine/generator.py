@@ -90,7 +90,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
         grammar_points_formatted = "none"
 
     prompt = f"""/no_think
-    You are a Korean language tutor assistant. Your role is to generate structured learning tasks.
+    You are a {target_lang} language tutor assistant. Your role is to generate structured learning tasks.
 
     The user's profile:
     - Proficiency level: {user_profile.get("level", "beginner")}
@@ -165,7 +165,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
 
     response_text = chat(
         messages=[
-            {"role": "system", "content": "You are a helpful Korean tutor assistant."},
+            {"role": "system", "content": f"""You are a helpful {target_lang} tutor assistant."""},
             {"role": "user", "content": prompt.strip()}
         ],
         temperature=0.4

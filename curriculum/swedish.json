@@ -1,0 +1,94 @@
+{
+  "grammar_points": [
+    {
+      "description": "To be (am/is/are) — present tense",
+      "id": "är",
+      "learning_order": 1,
+      "level": "beginner"
+    },
+    {
+      "description": "Definite articles (en/ett)",
+      "id": "en/ett",
+      "learning_order": 2,
+      "level": "beginner"
+    },
+    {
+      "description": "Plural nouns — basic forms",
+      "id": "plural_nouns_basic",
+      "learning_order": 3,
+      "level": "beginner"
+    },
+    {
+      "description": "Present tense verb endings",
+      "id": "present_verb_ends",
+      "learning_order": 4,
+      "level": "beginner"
+    },
+    {
+      "description": "Negation with 'inte'",
+      "id": "negation_inte",
+      "learning_order": 5,
+      "level": "beginner"
+    },
+    {
+      "description": "Subject pronouns (jag, du, han, etc.)",
+      "id": "subject_pronouns",
+      "learning_order": 6,
+      "level": "beginner"
+    },
+    {
+      "description": "Question words (vad, var, när, etc.)",
+      "id": "question_words",
+      "learning_order": 7,
+      "level": "beginner"
+    },
+    {
+      "description": "Possessive pronouns (min, din, hans, etc.)",
+      "id": "possessive_pronouns",
+      "learning_order": 8,
+      "level": "beginner"
+    },
+    {
+      "description": "Word order in statements (SVO)",
+      "id": "word_order_statements",
+      "learning_order": 9,
+      "level": "beginner"
+    },
+    {
+      "description": "Word order in questions (VSO)",
+      "id": "word_order_questions",
+      "learning_order": 10,
+      "level": "beginner"
+    },
+    {
+      "description": "Modal verbs (kan, vill, ska, etc.)",
+      "id": "modal_verbs",
+      "learning_order": 11,
+      "level": "beginner"
+    },
+    {
+      "description": "Prepositions (i, på, under, etc.)",
+      "id": "prepositions",
+      "learning_order": 12,
+      "level": "beginner"
+    },
+    {
+      "description": "Telling time — basic",
+      "id": "telling_time",
+      "learning_order": 13,
+      "level": "beginner"
+    },
+    {
+      "description": "Past tense — weak verbs",
+      "id": "past_tense_weak_verbs",
+      "learning_order": 14,
+      "level": "beginner"
+    },
+    {
+      "description": "Conjunctions (och, men, eller, etc.)",
+      "id": "conjunctions_basic",
+      "learning_order": 15,
+      "level": "beginner"
+    }
+  ]
+}

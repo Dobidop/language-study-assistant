@@ -103,8 +103,10 @@ class ExerciseSessionManager:
             prompt=user_filled,
             user_answer=user_filled,
             expected_answer=matching["filled_sentence"],
-            grammar_focus=matching.get("grammar_focus", [])
+            grammar_focus=matching.get("grammar_focus", []),
+            target_language=self.profile.get("target_language", "Korean")
         )
+
 
         # 🔥 Fix: update the exercise with result
         matching["is_correct"] = feedback["is_correct"]
@@ -156,6 +158,27 @@ def api_end_session():
         return jsonify({"summary": session_summary}), 200
     else:
         return jsonify({"error": "No active session."}), 400
+
+@app.route("/api/config/update", methods=["POST"])
+def update_config():
+    data = request.get_json()
+    with open("config.json", "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    provider = data.get("provider", config.get("default_provider"))
+    config["default_provider"] = provider
+
+    if provider == "openai":
+        config["openai_model"] = data.get("model", config.get("openai_model"))
+    elif provider == "local":
+        config["local_port"] = int(data.get("port", config.get("local_port")))
+        config["local_model"] = data.get("model", config.get("local_model"))
+
+    with open("config.json", "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+    return jsonify({"message": "Configuration updated successfully."})
+
 
 
 @app.route("/api/session/summary", methods=["GET"])
