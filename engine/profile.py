@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from engine.utils import normalize_grammar_id
 
 PROFILE_PATH = "user_profile.json"
 
@@ -44,7 +45,7 @@ def update_user_profile(profile, feedback, exercise):
 
     # === Update Grammar Summary ===
     for g in exercise.get("grammar_focus", []):
-        g_key = g.replace(" ", "_")
+        g_key = normalize_grammar_id(g)
         summary = profile.setdefault("grammar_summary", {})
         entry = summary.setdefault(g_key, {
             "exposure": 0,

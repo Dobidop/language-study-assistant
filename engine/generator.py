@@ -119,6 +119,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
         - do NOT leave any space between the blank part and other characters if the answer is supposed to be connected to those other characters.
         - The blank MUST be at a place which lets the user practice the grammar points! Do not just 'blank' random words. 
             - For example: If the exercise is about location of action, blanking "방에서" would be much better! Incorrect: (expected answer = 내) 저는 ___ 방에서 소주를 마셔요, Correct: (expected answer = 방에서) 저는 내 ___ 소주를 마셔요
+        - If the grammar point for the exercise is related to particles, then that is the word to replace blank
     - Do NOT explain or comment on the exercise.
     - The exercise should preferably (but not necessarily) match this type: {user_profile['learning_preferences']['preferred_exercise_types'][0]}
     - It must reinforce these grammar points: {grammar_points_formatted}
@@ -127,6 +128,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
     - {formality_instruction}
     - Provide ALL words for the glossary in dictionary(this is a must!) form (including from the suggested solution)
     - The generated sentence MUST make sense. It cannot be something like "I drink an apple"
+
 
     ## Grammar Maturity (for your planning):
     {grammar_maturity_section}
@@ -149,19 +151,18 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
     }}
     """
 
-
-  
     if recent_exercises:
         prompt += "\n## Session History:\n"
-        for idx, ex in enumerate(recent_exercises[-3:], 1):
+        for idx, ex in enumerate(recent_exercises[-10:], 1):
             prompt += f"- Exercise {idx}:\n"
             prompt += f"  Type: {ex['exercise_type']}\n"
             prompt += f"  Prompt: {ex['prompt']}\n"
             prompt += f"  User Answer: {ex['user_answer']}\n"
             prompt += f"  Expected: {ex['expected_answer']}\n"
             prompt += f"  Result: {ex['result']}\n"
-        prompt += "\nAvoid repeating prompts or patterns from the session history listed above.\n"
-    print(prompt)
+        prompt += "\nAvoid repeating prompts, patterns, and/or patterns from the session history listed above.\n"
+
+    print(f' ==> [Line 164]: \033[38;2;176;134;198m[prompt]\033[0m({type(prompt).__name__}) = \033[38;2;127;177;201m{prompt}\033[0m')
 
     response_text = chat(
         messages=[
@@ -171,7 +172,7 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
         temperature=0.4
     )
     response_text = response_text.replace("___ .","___.")
-    print(response_text)
+    print(f' ==> [Line 175]: \033[38;2;51;223;163m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;119;128;184m{response_text}\033[0m')
     try:
         return json.loads(sanitize_json_string(response_text))
     except json.JSONDecodeError:

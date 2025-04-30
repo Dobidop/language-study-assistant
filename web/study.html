@@ -66,7 +66,9 @@
   </style>
 </head>
 <body>
-
+  <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.8); z-index:9999; text-align:center; padding-top:200px; font-size:20px; font-weight:bold;">
+    Ending session, summarizing your progress... please wait ⏳
+  </div>
 <h1>Language Study Assistant</h1>
 
 <div id="progress">Session not started</div>
@@ -136,9 +138,14 @@ async function startSession() {
 }
 
 async function endSession() {
+  document.getElementById("loadingOverlay").style.display = "block";  // Show loading screen
+
   const response = await fetch("/api/session/end", { method: "POST" });
-  if (response.ok) {
-    const data = await response.json();
+  const data = await response.json();
+
+  document.getElementById("loadingOverlay").style.display = "none";  // Hide it after response
+
+  if (response.ok && data.summary) {
     sessionActive = false;
     document.getElementById("startSessionBtn").disabled = false;
     document.getElementById("endSessionBtn").disabled = true;
@@ -148,9 +155,12 @@ async function endSession() {
     alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
     window.location.href = "dashboard.html";
   } else {
-    alert("Failed to end session properly.");
+    alert(data.error || "Failed to end session properly.");
   }
 }
+
+
+
 
 async function fetchNewExercise() {
   if (!sessionActive) return;

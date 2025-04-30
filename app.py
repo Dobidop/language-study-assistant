@@ -1,6 +1,6 @@
-from flask import Flask, jsonify, send_from_directory, request
 import json
 import os
+from flask import Flask, jsonify, send_from_directory, request
 from uuid import uuid4
 from datetime import datetime
 from engine.profile import load_user_profile, update_user_profile
@@ -8,6 +8,10 @@ from engine.planner import select_focus_areas
 from engine.generator import generate_exercise
 from engine.evaluator import evaluate_answer, build_filled_sentence
 from engine.logger import log_exercise_to_session
+from engine.utils import normalize_grammar_id, summarize_common_errors
+from engine.profile import load_user_profile, save_user_profile
+from engine.utils import categorize_session_errors, merge_error_categories
+from engine.curriculum import load_curriculum
 
 
 app = Flask(__name__, static_folder="web", static_url_path="/")
@@ -36,27 +40,48 @@ class ExerciseSessionManager:
             return None
 
         session_duration = (datetime.now() - self.session_start_time).seconds // 60
-        correct_count = sum(1 for ex in self.current_session if ex.get("is_correct"))
-        total_exercises = len(self.current_session)
+        answered_exercises = [ex for ex in self.current_session if "is_correct" in ex]
+        correct_count = sum(1 for ex in answered_exercises if ex["is_correct"])
+        total_exercises = len(answered_exercises)
+
 
         # 🔥 Collect error counts
         error_counts = {}
-        for ex in self.current_session:
+        for ex in answered_exercises:
             for err in ex.get("error_analysis", []):
                 error_counts[err] = error_counts.get(err, 0) + 1
 
         sorted_errors = sorted(error_counts.items(), key=lambda x: x[1], reverse=True)
         main_errors = [e[0] for e in sorted_errors[:3]] if sorted_errors else []
 
+        # Step 1: Extract session-only error counts
+        session_errors = {}
+        for ex in answered_exercises:
+            for err in ex.get("error_analysis", []):
+                session_errors[err] = session_errors.get(err, 0) + 1
+
+        # Step 2: Load current categories + grammar tree
+        existing_categories = self.profile.get("common_error_categories", [])
+        curriculum_tree = load_curriculum(self.profile.get("target_language", "korean"))
+
+        # Step 3: Categorize session errors with LLM
+        new_categorized = categorize_session_errors(session_errors, existing_categories, curriculum_tree)
+
+        # Step 4: Merge new categorizations into existing ones deterministically
+        merged = merge_error_categories(existing_categories, new_categorized)
+
+        # Step 5: Save
+        self.profile["common_error_categories"] = merged
+        save_user_profile(self.profile)
+
         summary = {
             "duration_minutes": session_duration,
             "total_exercises": total_exercises,
             "correct_exercises": correct_count,
             "accuracy_rate": round((correct_count / total_exercises) * 100, 1) if total_exercises > 0 else 0.0,
-            "main_errors": main_errors
+            "main_errors": main_errors,
+            "error_categories": merged
         }
-
-
 
         session_log = {
             "session_id": f"session_{datetime.now().strftime('%Y_%m_%d_%H%M')}",
@@ -98,14 +123,29 @@ class ExerciseSessionManager:
         if not matching:
             return None
 
-        user_filled = build_filled_sentence(matching["prompt"], user_answer)
-        feedback = evaluate_answer(
-            prompt=user_filled,
-            user_answer=user_filled,
-            expected_answer=matching["filled_sentence"],
-            grammar_focus=matching.get("grammar_focus", []),
-            target_language=self.profile.get("target_language", "Korean")
-        )
+        filled = build_filled_sentence(matching["prompt"], user_answer)
+        expected = matching["filled_sentence"]
+
+        # ✅ Fast match check: skip LLM if identical
+        if filled.strip() == expected.strip():
+            feedback = {
+                "is_correct": True,
+                "corrected_answer": expected,
+                "error_analysis": [],
+                "grammar_focus": matching.get("grammar_focus", []),
+                "explanation_summary": "Perfect match — no issues detected."
+            }
+        else:
+            feedback = evaluate_answer(
+                prompt=matching["prompt"],
+                user_answer=filled,
+                expected_answer=expected,
+                grammar_focus=matching.get("grammar_focus", []),
+                target_language=self.profile.get("target_language", "Korean")
+            )
+
+
+        feedback["grammar_focus"] = [normalize_grammar_id(g) for g in feedback.get("grammar_focus", [])]
 
 
         # 🔥 Fix: update the exercise with result
@@ -184,10 +224,28 @@ def update_config():
 @app.route("/api/session/summary", methods=["GET"])
 def get_session_summary():
     summary = load_latest_session_summary()
-    if summary:
-        return jsonify({"summary": summary}), 200
-    else:
+    if not summary:
         return jsonify({"error": "No session summary available."}), 404
+
+    return jsonify({"summary": summary}), 200
+
+@app.route("/api/errors/aggregate", methods=["POST"])
+def api_aggregate_common_errors():
+    from engine.utils import summarize_common_errors
+    from engine.profile import load_user_profile, save_user_profile
+
+    profile = load_user_profile()
+    error_dict = profile.get("common_errors", {})
+
+    if not error_dict:
+        return jsonify({"message": "No common errors to summarize."}), 200
+
+    summary = summarize_common_errors(error_dict)
+    profile["common_error_categories"] = summary
+    save_user_profile(profile)
+
+    return jsonify({"message": "Common errors summarized.", "categories": summary}), 200
+
 
 
 @app.route("/api/session/history", methods=["GET"])

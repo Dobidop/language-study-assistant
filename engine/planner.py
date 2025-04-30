@@ -1,11 +1,15 @@
 from collections import defaultdict
 from engine.curriculum import load_curriculum, get_grammar_points_by_level
+from engine.utils import normalize_grammar_id
 
 def select_focus_areas(profile, max_targets=2):
     target_language = profile.get("target_language", "korean").lower()
     curriculum = load_curriculum(target_language)
 
-    grammar_summary = profile.get("grammar_summary", {})
+    grammar_summary = {
+        normalize_grammar_id(k): v for k, v in profile.get("grammar_summary", {}).items()
+    }
+    
     seen_grammar = set(profile.get("session_tracking", {}).get("grammar_points_seen", []))
 
     user_level = profile.get("level", "beginner")

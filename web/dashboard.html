@@ -53,6 +53,11 @@
 
 <h1>📚 Korean Study Assistant Dashboard</h1>
 
+<br>
+<button onclick="triggerErrorAggregation()">🔄 Regenerate Common Error Summary</button>
+<div id="errorStatus"></div>
+<br>
+
 <button id="studyButton" onclick="goStudy()">Start Studying</button>
 <br>
 <section class="llm-settings">
@@ -154,35 +159,26 @@ toggleProviderOptions();
 
 
 <script>
-async function fetchSessionSummary() {
+async function triggerErrorAggregation() {
+  const statusDiv = document.getElementById("errorStatus");
+  statusDiv.textContent = "Processing...";
+
   try {
-    const response = await fetch("/api/session/summary");
-    const summaryDiv = document.getElementById("summary");
-    if (!response.ok) {
-      summaryDiv.innerHTML = "⚠️ No session summary available.";
-      return;
-    }
+    const response = await fetch("/api/errors/aggregate", { method: "POST" });
     const data = await response.json();
-    const summary = data.summary;
 
-    let colorClass = "correct";
-    if (summary.accuracy_rate < 60) colorClass = "error";
-    else if (summary.accuracy_rate < 80) colorClass = "warning";
-
-    summaryDiv.innerHTML = `
-      <p><strong>Exercises Completed:</strong> ${summary.total_exercises}</p>
-      <p><strong>Duration:</strong> ${summary.duration_minutes} minutes</p>
-      <p><strong>Correct Answers:</strong> <span class="${colorClass}">${summary.correct_exercises} (${summary.accuracy_rate}%)</span></p>
-      <p><strong>Common Mistakes:</strong></p>
-      <ul>
-        ${(summary.main_errors || []).map(err => `<li>${err}</li>`).join("")}
-      </ul>
-    `;
-  } catch (error) {
-    document.getElementById("summary").innerHTML = "⚠️ Error loading session summary.";
-    console.error(error);
+    if (response.ok) {
+      statusDiv.innerHTML = `✅ Done! ${data.categories.length} categories updated. Reload the dashboard to see them.`;
+    } else {
+      statusDiv.textContent = "⚠️ Failed to summarize.";
+    }
+  } catch (e) {
+    statusDiv.textContent = "❌ Error: " + e.message;
   }
 }
+
+
+
 
 async function fetchSessionHistory() {
   try {
@@ -222,9 +218,48 @@ function goStudy() {
   window.location.href = "study.html?start=1";
 }
 
-fetchSessionSummary();
 fetchSessionHistory();
 </script>
+<script>
+  async function fetchSessionSummary() {
+    try {
+      const response = await fetch("/api/session/summary");
+      const summaryDiv = document.getElementById("summary");
 
+      if (!response.ok) {
+        summaryDiv.innerHTML = "⚠️ Could not load summary.";
+        return;
+      }
+
+      const data = await response.json();
+      const { duration_minutes, total_exercises, accuracy_rate, error_categories } = data.summary;
+
+
+      let html = `<p><strong>Duration:</strong> ${duration_minutes} min</p>`;
+      html += `<p><strong>Exercises:</strong> ${total_exercises}</p>`;
+      html += `<p><strong>Accuracy:</strong> ${accuracy_rate}%</p>`;
+
+      if (error_categories && error_categories.length > 0) {
+        html += `<h3>⚠️ Common Mistake Categories (This Session):</h3><ul>`;
+        error_categories.forEach(cat => {
+          html += `<li><strong>${cat.label}</strong> — ${cat.count} error(s)<br><em>Examples:</em> ${cat.examples.slice(0, 2).join(", ")}</li>`;
+        });
+        html += `</ul>`;
+      } else {
+        html += `<p>No common errors detected in the latest session 🎉</p>`;
+      }
+
+      summaryDiv.innerHTML = html;
+
+    } catch (e) {
+      document.getElementById("summary").innerHTML = "❌ Error loading summary.";
+      console.error(e);
+    }
+  }
+
+  fetchSessionSummary();
+
+  </script>
+  
 </body>
 </html>
