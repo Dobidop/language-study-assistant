@@ -1,100 +1,181 @@
-# Korean Language Study Assistant
+# 🧠 (a very basic) Korean Language Study Assistant
 
-**Korean Language Study Assistant** is an interactive study tool designed to help beginners learn Korean grammar and vocabulary through dynamically generated exercises, real-time feedback, and session tracking. It runs both as a command-line tool and a lightweight web app using Flask.
-
----
-
-## Features
-- 📚 Beginner-focused Korean grammar exercises.
-- 🔍 Personalized learning with progress tracking.
-- ✍️ Dynamic exercise generation using OpenAI or local LLMs.
-- ✅ Instant feedback and correction suggestions.
-- 📊 Session summaries and mistake tracking.
-- 🖥️ Web interface with study, history, and summary pages.
+An interactive, AI-assisted Korean language learning platform that tracks your grammar progress, adapts to your mistakes, and dynamically generates exercises using LLMs (e.g., OpenAI or local models). Built for beginners who want personalized study sessions and transparent improvement tracking.
 
 ---
 
-## Tech Stack
-- Python 3
-- Flask
-- OpenAI API or Local LLM (optional)
-- Frontend: Vanilla HTML, CSS, JavaScript
+## ✨ Features
+
+- 🧩 **Grammar-aware exercise generator**  
+  Automatically selects grammar points based on your weaknesses and past exposure. (not great at the moment, needs improvements)
+
+- 📊 **Smart progress tracking**  
+  Tracks your session results, grammar mastery stages, and common error patterns. (just ok, needs improvements)
+
+- 🔁 **Real-time feedback**  
+  Evaluates your answers, corrects mistakes, and explains grammar concepts. (works decently well)
+
+- 💡 **Custom vocab buckets**  
+  Prioritizes new, familiar, and core vocabulary intelligently. (works ok, but planning on an Anki integration)
+
+- 🔄 **Supports both OpenAI and local models**  
+  Easily switch between GPT-4 and local LLMs like Mistral/Qwen. (seems to work well, requests to local LLMs needs some improvements)
 
 ---
 
-## Installation
+## 🛠 Tech Stack
 
-1. Clone the repository:
+- **Backend**: Python 3.10+, Flask-style API structure
+- **Frontend**: HTML/CSS + vanilla JS
+- **LLM API**: OpenAI (`openai`) or local server-compatible models
+- **Storage**: JSON-based profiles and session logging
+
+---
+
+## 🚀 Getting Started
+
+### Windows Users: Easy Setup
+
+Just run:
+
+```bash
+setup.bat
+```
+
+This will:
+
+- Create a virtual environment
+- Install required dependencies (`requirements.txt`)
+
+---
+
+### Manual Setup (Cross-platform)
+
+1. **Clone the repo**  
    ```bash
    git clone https://github.com/yourusername/korean-study-assistant.git
    cd korean-study-assistant
    ```
 
-2. Setup environment:
-   - On **Windows**, you can simply run:
-     ```bash
-     setup.bat
-     ```
-     This will create a virtual environment, activate it, and install the required dependencies.
+2. **Create a virtual environment and activate it**  
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # macOS/Linux:
+   source venv/bin/activate
+   ```
 
-   - On **Linux/macOS** or if `setup.bat` doesn't work, follow these steps manually:
-     ```bash
-     python3 -m venv venv
-     source venv/bin/activate
-     pip install -r requirements.txt
-     ```
+3. **Install dependencies**  
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3. Configure your environment:
-   - Rename the `api-key.env.example` file to `api-key.env`.
-   - Open `api-key.env` and add your OpenAI API key:
-     ```
-     OPENAI_API_KEY=your_openai_api_key_here
-     ```
+4. **Configure environment variables**  
+   Create a file called `api-key.env` and add your OpenAI key:
 
-4. (Optional) Edit `config.json` to adjust model/provider settings.
-
+   ```
+   OPENAI_API_KEY=your-api-key-here
+   ```
 
 ---
 
-## Running the App
+## ▶️ Running the App
 
-- **Command Line Mode** (basic study session):
-  ```bash
-  python main.py
-  ```
+To start the local web app:
 
-- **Web App Mode**:
-  ```bash
-  python app.py
-  ```
-  Then open your browser at `http://localhost:5000`
-
----
-
-## Folder Structure
-
-```
-.
-├── engine/            # Core logic (exercise generation, evaluation, logging)
-├── sessions/          # Saved session logs
-├── curriculum/        # Curriculum data for Korean
-├── static/            # Frontend HTML, CSS, JavaScript files
-├── user_profile.json  # Tracks user progress
-├── app.py             # Flask application
-├── main.py            # CLI application
-├── requirements.txt   # Python dependencies
-└── README.md
+```bash
+startWeb.bat  # Windows only
 ```
 
+Or run manually with:
+
+```bash
+python app.py
+```
+
+Then open your browser and go to:  
+`http://localhost:8000/`
+
 ---
 
-## Roadmap
-- Add support for more languages (e.g., Japanese, Chinese).
-- Expand exercise types (listening, speaking tasks).
-- Integrate spaced repetition (like Anki) more tightly.
-- Mobile-friendly UI improvements.
+## 🧪 Usage Guide
+
+- Visit the **Dashboard** to view your session history and error stats.
+- Click **Start Studying** to begin a new session.
+- You'll receive dynamically generated exercises.
+- Type your answer and submit it.
+- You'll get:
+  - Feedback (`correct/incorrect`)
+  - A corrected sentence
+  - Vocabulary breakdown
+  - Grammar explanation
+
+Sessions are auto-logged in the `/sessions/` folder.
 
 ---
 
-## License
-MIT License. See `LICENSE` file.
+## 📁 File Structure Overview
+
+```text
+├── app.py                  # Main server
+├── setup.bat               # Easy setup for Windows
+├── startWeb.bat            # Launch web interface
+├── config.json             # Model preferences and defaults
+├── api-key.env             # Your OpenAI API key
+├── engine/                 # Core logic for grammar, evaluation, generation
+├── curriculum/             # Curriculum definitions per language
+├── sessions/               # Auto-logged session history
+├── dashboard.html          # Dashboard UI
+├── study.html              # Study session UI
+├── user_profile.json       # Your learning progress
+├── vocab_data.json         # Vocabulary difficulty and tags
+```
+
+---
+
+## 🛠 Customization
+
+### 📚 Add/Edit Grammar Curriculum
+
+Edit `curriculum/korean.json` to change grammar point descriptions, difficulty, or learning order.
+
+### 🔡 Add New Vocabulary
+
+Edit `vocab_data.json` and mark vocab items as `ease = 0` (new), 1–2 (familiar), or >2.5 (core).
+
+### 🤖 Change Language Model
+
+Modify `config.json` to change (manually):
+
+```json
+{
+  "default_provider": "openai",
+  "openai_model": "gpt-4",
+  "local_model": "mistral-7b-instruct",
+  "local_port": 11434
+}
+```
+
+Or use the dropdown settings on the dashboard to change provider and model.
+
+---
+
+## 🗃 Session Logging
+
+All completed sessions are saved as JSON in the `sessions/` folder.  
+Each log includes:
+
+- Date/time
+- Exercises completed
+- Accuracy stats
+- Error types and examples
+- Grammar focus
+
+---
+
+## 📜 License
+
+This project is open source under the terms of the [MIT License](./LICENSE).
+
+---
