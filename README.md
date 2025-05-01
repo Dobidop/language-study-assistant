@@ -1,4 +1,4 @@
-# 🧠 (a very basic) Korean Language Study Assistant
+# 🧠 (a very basic) LLM driven Korean Language Study Assistant
 
 An interactive, AI-assisted Korean language learning platform that tracks your grammar progress, adapts to your mistakes, and dynamically generates exercises using LLMs (e.g., OpenAI or local models). Built for beginners who want personalized study sessions and transparent improvement tracking.
 
