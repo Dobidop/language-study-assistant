@@ -7,146 +7,178 @@
   "task_language": "Korean",
   "grammar_summary": {
     "object_particles": {
-      "exposure": 12,
+      "exposure": 13,
       "mistake_rate": 0.05,
-      "status": "strong",
-      "recent_correct_streak": 3
+      "status": "new",
+      "recent_correct_streak": 4
     },
-    "polite_verb_forms": {
-      "exposure": 44,
-      "mistake_rate": 0.0,
+    "time_particle_에": {
+      "exposure": 5,
       "status": "weak",
-      "recent_correct_streak": 5
+      "recent_correct_streak": 1
     },
-    "은_는_vs_이_가": {
+    "to_be_amisare_polite_form_-이에요예요": {
+      "exposure": 5,
+      "status": "weak",
+      "recent_correct_streak": 1
+    },
+    "present_tense_polite_endings_-아요어요": {
       "exposure": 6,
-      "mistake_rate": 0.1,
-      "status": "strong"
+      "status": "weak_medium",
+      "recent_correct_streak": 0
     },
-    "topic_particles": {
-      "exposure": 5,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 4
+    "object_particle_가": {
+      "exposure": 2,
+      "status": "new_weak",
+      "recent_correct_streak": 0
     },
-    "subject_particles": {
-      "exposure": 5,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 4
+    "adverb_usage": {
+      "exposure": 3,
+      "status": "new_weak",
+      "recent_correct_streak": 1
     },
-    "location_particles": {
-      "exposure": 14,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 8
+    "object_particle_의_possessive_particle": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
     },
-    "basic_questions": {
-      "exposure": 7,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 5
+    "location_particle_에서": {
+      "exposure": 24,
+      "status": "medium",
+      "recent_correct_streak": 0
     },
-    "command_forms": {
+    "present_tense_polite_ending_-아요": {
+      "exposure": 10,
+      "status": "new_weak",
+      "recent_correct_streak": 1
+    },
+    "object_particle_가를": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "present_tense_polite_ending_-아요어요": {
+      "exposure": 3,
+      "status": "new_weak",
+      "recent_correct_streak": 0
+    },
+    "subject_particle_이": {
+      "exposure": 2,
+      "status": "new_weak",
+      "recent_correct_streak": 0
+    },
+    "subject_particle_은": {
+      "exposure": 2,
+      "status": "new_weak",
+      "recent_correct_streak": 0
+    },
+    "to_be_이에요예요": {
+      "exposure": 2,
+      "status": "new_weak",
+      "recent_correct_streak": 0
+    },
+    "topic_particle_은": {
       "exposure": 4,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 2
+      "status": "new_weak",
+      "recent_correct_streak": 1
     },
-    "basic_tenses": {
-      "exposure": 4,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 2
+    "object_particle_를": {
+      "exposure": 19,
+      "status": "medium",
+      "recent_correct_streak": 0
     },
-    "location_particle": {
-      "exposure": 5,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 3
+    "present_tense_polite_ending_-어요": {
+      "exposure": 23,
+      "status": "weak_medium",
+      "recent_correct_streak": 1
     },
-    "object_particle": {
-      "exposure": 5,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 3
+    "object_particle_에게": {
+      "exposure": 3,
+      "status": "new",
+      "recent_correct_streak": 1
     },
-    "polite_verb_ending": {
-      "exposure": 5,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 3
+    "timelocation_particle_에": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
     },
-    "polite_verb_endings": {
-      "exposure": 7,
-      "mistake_rate": 0.0,
-      "status": "strong",
-      "recent_correct_streak": 3
+    "honorific_particle_께": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "polite_verb_ending_-어요": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "possessive_particle_의_implied_in_내": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "future_tense_polite_ending_-거예요": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "particle_로": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 0
+    },
+    "location_particle_에": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "possessive_particle_의": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 0
+    },
+    "object_particle_을": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "subject_particle_가": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 1
     }
   },
   "common_errors": {
     "used plain instead of polite verb": 3,
-    "used 은/는 instead of 을/를": 2,
-    "User's answer 'asdasd' is not a valid response to the exercise.": 1,
-    "The exercise requires filling in the correct particles '은/는' or '이/가' in the sentences.": 1,
-    "문장에서 빈칸에 들어갈 알맞은 조사를 묻는 문제이므로, '가'만 쓰는 것이 아니라 '사과가'처럼 명사와 함께 써야 합니다.": 1,
-    "조사만 따로 쓰면 문장이 완성되지 않으므로, 전체 문장 형태로 답을 써야 합니다.": 1,
-    "The particle '가' is used to mark the subject of a sentence, but in this context, '사과' is the topic, not just the subject.": 1,
-    "The particle '는' is appropriate here because it sets '사과' as the topic of the sentence, indicating that the statement is about apples in general.": 1,
-    "'가' would be used if the sentence was emphasizing the subject or introducing new information, but since the sentence is making a general statement about apples, '는' is the correct choice.": 1,
-    "The particle '가' is used to mark the subject of a sentence, often introducing new information or emphasizing the subject itself.": 1,
-    "In this sentence, '사과는 맛있어요.' uses the topic particle '는' to indicate that the sentence is about apples in general, which is more natural when stating a general fact or opinion.": 1,
-    "Using '가' here sounds like you are emphasizing '사과' as the subject, which is less natural in this context.": 1,
-    "The phrase '맛 먹어요' is incorrect because '맛' (taste) is a noun and cannot be directly combined with the verb '먹어요' (eat) in this way.": 1,
-    "'맛있다' is the correct adjective to describe something as tasty, but it should not be combined directly with '먹어요' as '맛 먹어요'.": 1,
-    "The verb ending '먹요' is incorrect.": 2,
-    "The correct polite ending is '먹어요' for the verb '먹다' (to eat).": 1,
-    "The correct polite ending is '먹어요' for the verb '먹다' (to eat) in present tense.": 1,
-    "The verb '먹어요' means 'to eat,' which is not appropriate for '물' (water).": 1,
-    "The correct verb for drinking liquids is '마시다,' so it should be '마셔요' in this context.": 1,
-    "The verb '먹어요' means 'to eat', which is incorrect in this context.": 2,
-    "The correct verb should be '읽어요', which means 'to read', because you read a book, not eat it.": 1,
-    "The verb '읽어요' means 'to read', which does not make sense with '물을' (water) as the object.": 2,
-    "The correct verb should be '마셔요', which means 'to drink', matching the object '물을' (water).": 2,
-    "The verb '읽어요' means 'to read,' but the sentence structure '도서관에 읽어요' is incorrect because '에' is a location particle used with verbs of movement like '가다' (to go).": 1,
-    "To express 'I go to the library,' the correct verb is '가요' (to go), not '읽어요' (to read).": 1,
-    "'가요' means 'to go', but the verb '마셔요' (to drink) is needed to match the object '물을' (water).": 1,
-    "The verb does not agree with the object; you cannot 'go' water, you 'drink' water.": 1,
-    "'먹어요' means 'to eat', which is used for food, not drinks.": 1,
-    "'마셔요' is the correct verb for 'to drink' in polite form.": 1,
-    "'먹어요' means 'to eat', which is not appropriate for '책' (book).": 2,
-    "The correct verb is '읽어요', which means 'to read'.": 2,
-    "'먹어요' means 'to eat', which is not appropriate for water.": 2,
-    "The correct verb for 'to drink' is '마셔요' when referring to liquids like water.": 4,
-    "The verb '먹어요' means 'to eat,' which is not appropriate for water.": 1,
-    "The correct verb for drinking is '마셔요,' which means 'to drink.'": 1,
-    "The verb '먹어요' means 'to eat', which is not appropriate for water.": 2,
-    "The verb '마셔요' (to drink, polite form) was misspelled as '마샤요'.": 1,
-    "'마셔요' is the correct conjugation of '마시다' in the present polite form.": 1,
-    "The verb '마샤요' is incorrect. The correct polite present tense form of '마시다' (to drink) is '마셔요'.": 1,
-    "The vowel 'ㅓ' should be used instead of 'ㅏ' in the verb ending for '마시다'.": 1,
-    "The user used the particle '에', which indicates location or direction (to/at/in), but in this sentence, the topic particle '는' is needed to indicate that 'the school' is the topic of the sentence.": 1,
-    "'커요' (is big) describes the school, so the sentence should use the topic particle to mean 'As for the school, it is big.'": 1,
-    "The topic particle '는' was used after '도서관', which ends in a consonant. The correct topic particle after a consonant is '은', not '는'.": 1,
-    "'도서관은' is the correct form because '도서관' ends with the consonant 'ㄴ'.": 1,
-    "The user used '는' (topic particle) instead of '에' (location particle) after '학교'.": 1,
-    "'에' is needed to indicate the location where the apples are.": 1,
-    "'먹다' is the dictionary form of the verb and cannot be used directly before '주세요'.": 1,
-    "The verb stem '먹-' should be combined with the polite request ending '-어 주세요' to form '먹어 주세요'.": 1,
-    "The user's answer repeats '마셨어요' without connecting the actions, which is unnatural in Korean.": 1,
-    "The correct form uses '마시고' to connect two actions, indicating that one action happened and then the next.": 1,
-    "The correct verb should be '읽어요', which means 'to read'.": 1,
-    "'읽어요' means 'to read', but '물을 읽어요' translates to 'read water', which doesn't make sense.": 1,
-    "The correct verb for 'to drink' is '마셔요', so it should be '물을 마셔요'.": 1,
-    "The verb ending '어요' is repeated twice as '읽어요요', which is incorrect.": 1,
-    "Only one polite ending '어요' should be used at the end of the verb.": 1,
-    "The verb '읽어요' (to read) is missing; only the verb ending '어요' is present, which is incomplete and incorrect.": 2,
-    "A complete verb is required to finish the sentence and convey the meaning 'I read books at the library.'": 1,
-    "A complete verb is necessary for the sentence to make sense. '어요' by itself does not convey any meaning.": 1,
-    "The verb '마셔요' (to drink, polite form) was misspelled as '마여요요'. The correct form is '마셔요'.": 1,
-    "There is an extra '요' at the end, resulting in '마여요요', which is incorrect.": 1,
-    "The verb ending '어요' is repeated twice ('읽어요요'), which is incorrect.": 1,
-    "Only one polite ending ('-어요') should be used at the end of the sentence.": 1
+    "The user used '이에요' after '사과', but '사과' ends with a vowel.": 1,
+    "'이에요' is used after nouns ending in a consonant, while '예요' is used after nouns ending in a vowel.": 1,
+    "There is an extra space before the period at the end of the sentence.": 2,
+    "In Korean, there should not be a space between the last word and the sentence-ending punctuation.": 2,
+    "Could not parse GPT response.": 5,
+    "The user's answer '수업 에서 백을 읽어요.' contains a space between '수업' and '에서', which is incorrect because '에서' is a particle that should be attached directly to the noun without a space.": 1,
+    "This spacing issue is likely due to the prompt formatting, as the prompt shows a space between '___' and '에서'.": 1,
+    "The user omitted the particle '로' after '눈물', which is necessary to indicate the means or method by which the feeling of love is experienced.": 1,
+    "Without '로', '눈물 사랑' sounds like a compound noun or a phrase meaning 'tear love', which is unnatural in this context.": 1,
+    "The user wrote '가족에 혼나요.' but the correct particle to indicate the person from whom the scolding is received is '에게'.": 1,
+    "'에' is a location/time particle and does not fit in this context.": 1,
+    "The prompt likely intended '가족___ 혼나요.' where the blank should be filled with the correct particle '에게'.": 1,
+    "The user repeated the word '사랑' twice, which is unnatural and incorrect in this context.": 1,
+    "The blank in the sentence is meant to be filled with an adjective describing '사랑', such as '진한' (deep/strong).": 1,
+    "The user used the particle '에' instead of the possessive particle '의' to connect '사랑' and '느낌'.": 1,
+    "'사랑에 느낌' is not a natural or grammatically correct phrase in Korean.": 1,
+    "The correct particle to indicate possession or attribution in this context is '의', as in '사랑의 느낌' (the feeling of love).": 1,
+    "The user omitted the location particle '에서' after '방', which is necessary to indicate the place where the action occurs.": 1,
+    "'방 소주를 마셔요' is incorrect because '방' (room) needs the particle '에서' to show that the drinking happens in the room.": 1,
+    "The user omitted the noun '눈물' (tears) before the particle '로', which is necessary to complete the phrase.": 1,
+    "The particle '로' is a postposition that attaches to a noun to indicate means or method, so it cannot stand alone.": 1,
+    "The user inserted '마시다' (the dictionary form of 'to drink') incorrectly in the sentence, which disrupts the sentence structure.": 1,
+    "The blank in the prompt is intended for a location phrase with the particle '에서' to indicate where the action takes place.": 1,
+    "The user's answer does not include a location phrase and instead repeats the verb root, which is grammatically incorrect.": 1,
+    "The user answered '우리 가 지금 눈물이 나요.' which is missing the noun before the subject particle '가'.": 1,
+    "The prompt expects a noun to fill the blank before the particle, likely '모자' (hat), making the phrase '우리 모자가'.": 1,
+    "Without the noun, '우리 가' is grammatically incomplete and unnatural.": 1,
+    "The user repeated the location word '저기' twice ('저기 저기에'), which is redundant and incorrect.": 1,
+    "The correct location particle to indicate the place where an action occurs is '에서', attached to the location noun '저기'.": 1
   },
   "vocabulary": {
     "core": {
@@ -179,16 +211,85 @@
     "last_session_date": "2025-04-24",
     "exercises_completed": 10,
     "correct_ratio_last_10": 0.7,
-    "grammar_points_seen": []
+    "grammar_points_seen": [
+      "object_particles"
+    ]
   },
   "learning_preferences": {
     "preferred_formality": "polite",
     "max_new_words_per_session": 2,
     "preferred_exercise_types": [
-      "translation",
-      "fill_in_blank"
+      "fill_in_blank",
+      "translation"
     ],
     "prefers_korean_prompts": false,
     "allow_open_tasks": true
-  }
+  },
+  "common_error_categories": [
+    {
+      "label": "Politeness Level Errors",
+      "count": 4,
+      "examples": [
+        "used plain instead of polite verb"
+      ]
+    },
+    {
+      "label": "Spacing Errors Around Punctuation",
+      "count": 8,
+      "examples": [
+        "In Korean, there should not be a space between the last word and the sentence-ending punctuation.",
+        "The prompt likely intended to have a space after the blank, making it '저는 ___ 방에서 공부해요.'",
+        "There is an extra space before the period at the end of the sentence."
+      ]
+    },
+    {
+      "label": "Spacing Errors Between Noun and Particle",
+      "count": 12,
+      "examples": [
+        "The object particle '을' should be attached directly to the noun '시험' without a space.",
+        "The user separated the topic particle '는' from the noun '의사', which is incorrect in Korean grammar.",
+        "The user's answer '수업 에서 백을 읽어요.' contains a space between '수업' and '에서', which is incorrect because '에서' is a particle that should be attached directly to the noun without a space.",
+        "This spacing issue is likely due to the prompt formatting, as the prompt shows a space between '___' and '에서'.",
+        "공백이 잘못된 위치에 있습니다. '도서관' 뒤에 공백을 넣었지만, '도서관'과 '에서' 사이에는 공백이 필요 없습니다."
+      ]
+    },
+    {
+      "label": "Particle Omission Errors",
+      "count": 9,
+      "examples": [
+        "Omitted the noun '눈물' before the particle '로', which is necessary to complete the phrase",
+        "The user omitted the particle '로' after '눈물', which is necessary to indicate the means or method by which the feeling of love is experienced.",
+        "Without '로', '눈물 사랑' sounds like a compound noun or a phrase meaning 'tear love', which is unnatural in this context."
+      ]
+    },
+    {
+      "label": "Redundancy and Word Choice Errors",
+      "count": 3,
+      "examples": [
+        "The user inserted '마시다' (the dictionary form of 'to drink') incorrectly in the sentence, which disrupts the sentence structure.",
+        "repeated location word '저기' twice ('저기 저기에'), which is redundant and incorrect",
+        "repeated the same noun twice unnaturally"
+      ]
+    },
+    {
+      "label": "Adjective Usage Errors",
+      "count": 1,
+      "examples": [
+        "missing appropriate adjective before noun (e.g., 진한 사랑)"
+      ]
+    },
+    {
+      "label": "Particle Usage Errors",
+      "count": 7,
+      "examples": [
+        "'사랑에 느낌' is not a natural or grammatically correct phrase in Korean.",
+        "The blank in the prompt is intended for a location phrase with the particle '에서' to indicate where the action takes place.",
+        "The correct particle to indicate possession or attribution in this context is '의', as in '사랑의 느낌' (the feeling of love).",
+        "The particle '로' is a postposition that attaches to a noun to indicate means or method, so it cannot stand alone",
+        "The user used the particle '에' instead of the possessive particle '의' to connect '사랑' and '느낌'.",
+        "The user's answer does not include a location phrase and instead repeats the verb root, which is grammatically incorrect.",
+        "incorrect location particle used; correct particle for action place is '에서', attached to location noun '저기'"
+      ]
+    }
+  ]
 }
