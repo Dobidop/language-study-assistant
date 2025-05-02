@@ -43,9 +43,9 @@
       "recent_correct_streak": 1
     },
     "location_particle_에서": {
-      "exposure": 24,
-      "status": "medium",
-      "recent_correct_streak": 0
+      "exposure": 27,
+      "status": "weak_medium",
+      "recent_correct_streak": 1
     },
     "present_tense_polite_ending_-아요": {
       "exposure": 10,
@@ -83,14 +83,14 @@
       "recent_correct_streak": 1
     },
     "object_particle_를": {
-      "exposure": 19,
+      "exposure": 23,
       "status": "medium",
       "recent_correct_streak": 0
     },
     "present_tense_polite_ending_-어요": {
-      "exposure": 23,
-      "status": "weak_medium",
-      "recent_correct_streak": 1
+      "exposure": 24,
+      "status": "medium",
+      "recent_correct_streak": 0
     },
     "object_particle_에게": {
       "exposure": 3,
@@ -133,17 +133,32 @@
       "recent_correct_streak": 1
     },
     "possessive_particle_의": {
-      "exposure": 2,
+      "exposure": 4,
       "status": "new",
-      "recent_correct_streak": 0
+      "recent_correct_streak": 1
     },
     "object_particle_을": {
+      "exposure": 2,
+      "status": "new_weak",
+      "recent_correct_streak": 0
+    },
+    "subject_particle_가": {
+      "exposure": 2,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "present_tense_polite_ending_-고_싶어요": {
       "exposure": 1,
       "status": "new",
       "recent_correct_streak": 1
     },
-    "subject_particle_가": {
-      "exposure": 2,
+    "possessive_particle_내": {
+      "exposure": 1,
+      "status": "new",
+      "recent_correct_streak": 1
+    },
+    "present_tense_polite_ending_-겠어요": {
+      "exposure": 1,
       "status": "new",
       "recent_correct_streak": 1
     }
@@ -178,7 +193,12 @@
     "The prompt expects a noun to fill the blank before the particle, likely '모자' (hat), making the phrase '우리 모자가'.": 1,
     "Without the noun, '우리 가' is grammatically incomplete and unnatural.": 1,
     "The user repeated the location word '저기' twice ('저기 저기에'), which is redundant and incorrect.": 1,
-    "The correct location particle to indicate the place where an action occurs is '에서', attached to the location noun '저기'.": 1
+    "The correct location particle to indicate the place where an action occurs is '에서', attached to the location noun '저기'.": 1,
+    "The user wrote '집중하 소주를' which is grammatically incorrect because '집중하' is an incomplete verb stem and cannot directly modify a noun.": 1,
+    "The correct form is '집중해서', which is the connective form of the verb '집중하다' used to indicate the manner of the action '마셔요'.": 1,
+    "The phrase '집중해서 소주를 마셔요' means 'I drink soju with concentration/focus', which fits the context.": 1,
+    "User repeated '방에서' instead of using '내 방에서'.": 1,
+    "Missing possessive particle '의' in '내 방에서'.": 1
   },
   "vocabulary": {
     "core": {
@@ -228,14 +248,14 @@
   "common_error_categories": [
     {
       "label": "Politeness Level Errors",
-      "count": 4,
+      "count": 16,
       "examples": [
         "used plain instead of polite verb"
       ]
     },
     {
       "label": "Spacing Errors Around Punctuation",
-      "count": 8,
+      "count": 32,
       "examples": [
         "In Korean, there should not be a space between the last word and the sentence-ending punctuation.",
         "The prompt likely intended to have a space after the blank, making it '저는 ___ 방에서 공부해요.'",
@@ -244,7 +264,7 @@
     },
     {
       "label": "Spacing Errors Between Noun and Particle",
-      "count": 12,
+      "count": 48,
       "examples": [
         "The object particle '을' should be attached directly to the noun '시험' without a space.",
         "The user separated the topic particle '는' from the noun '의사', which is incorrect in Korean grammar.",
@@ -255,7 +275,7 @@
     },
     {
       "label": "Particle Omission Errors",
-      "count": 9,
+      "count": 36,
       "examples": [
         "Omitted the noun '눈물' before the particle '로', which is necessary to complete the phrase",
         "The user omitted the particle '로' after '눈물', which is necessary to indicate the means or method by which the feeling of love is experienced.",
@@ -264,7 +284,7 @@
     },
     {
       "label": "Redundancy and Word Choice Errors",
-      "count": 3,
+      "count": 12,
       "examples": [
         "The user inserted '마시다' (the dictionary form of 'to drink') incorrectly in the sentence, which disrupts the sentence structure.",
         "repeated location word '저기' twice ('저기 저기에'), which is redundant and incorrect",
@@ -273,14 +293,14 @@
     },
     {
       "label": "Adjective Usage Errors",
-      "count": 1,
+      "count": 4,
       "examples": [
         "missing appropriate adjective before noun (e.g., 진한 사랑)"
       ]
     },
     {
       "label": "Particle Usage Errors",
-      "count": 7,
+      "count": 28,
       "examples": [
         "'사랑에 느낌' is not a natural or grammatically correct phrase in Korean.",
         "The blank in the prompt is intended for a location phrase with the particle '에서' to indicate where the action takes place.",
@@ -289,6 +309,13 @@
         "The user used the particle '에' instead of the possessive particle '의' to connect '사랑' and '느낌'.",
         "The user's answer does not include a location phrase and instead repeats the verb root, which is grammatically incorrect.",
         "incorrect location particle used; correct particle for action place is '에서', attached to location noun '저기'"
+      ]
+    },
+    {
+      "label": "Verb Form Errors",
+      "count": 2,
+      "examples": [
+        "incomplete verb stem used where connective form is required, e.g. '집중하 소주를' instead of '집중해서 소주를'"
       ]
     }
   ]

@@ -4,35 +4,56 @@ from engine.llm_client import chat
 import os
 import random
 
+
+
 # Load vocab data
 VOCAB_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'vocab_data.json')
 with open(VOCAB_DATA_PATH, 'r', encoding='utf-8') as f:
     VOCAB_DATA = json.load(f)
 
+def select_vocab_words(vocab_list, count=10, focus_rank=500, rank_deviation=300):
+    # Step 1: Prioritize by need
+    sorted_vocab = sorted(
+        vocab_list,
+        key=lambda v: (
+            v.get("lapses", 0) > 0,
+            v.get("ease", 2.5),
+            -v.get("reps", 0),
+            v.get("frequency_rank", 9999)
+        ),
+        reverse=True
+    )
 
+    # Step 2: Filter by frequency rank deviation
+    close_rank_words = [v for v in sorted_vocab
+                        if abs(v.get("frequency_rank", 9999) - focus_rank) <= rank_deviation]
 
-def categorize_vocab(shuffle=True, limit_core=6, limit_familiar=3, limit_new=2):
-    core = []
-    familiar = []
-    newly_introduced = []
+    # Step 3: Random selection from different importance tiers
+    top_focus = close_rank_words[:count * 2]
+    low_reps = [v for v in close_rank_words if v.get("reps", 0) <= 2]
 
-    for item in VOCAB_DATA:
-        ease = item.get("ease")
-        word = item.get("vocab")
-        if ease is None or ease == 0:
-            newly_introduced.append(word)
-        elif ease > 2.5:
-            core.append(word)
-        else:
-            familiar.append(word)
+    selected = random.sample(top_focus, min(5, len(top_focus))) + \
+               random.sample(low_reps, min(3, len(low_reps)))
+
+    # Fill up remaining from full pool with some randomness
+    remaining = [v for v in sorted_vocab if v not in selected]
+    selected += random.sample(remaining, max(0, count - len(selected)))
+
+    return selected[:count]
+
+def categorize_vocab_smart(shuffle=True, count=20):
+    selected = select_vocab_words(VOCAB_DATA, count=count)
+
+    core = [v["vocab"] for v in selected if v.get("ease", 0) > 2.5]
+    familiar = [v["vocab"] for v in selected if 1.5 < v.get("ease", 0) <= 2.5]
+    new = [v["vocab"] for v in selected if v.get("ease", 0) <= 1.5]
 
     if shuffle:
         random.shuffle(core)
         random.shuffle(familiar)
-        random.shuffle(newly_introduced)
+        random.shuffle(new)
 
-    return core[:limit_core], familiar[:limit_familiar], newly_introduced[:limit_new]
-
+    return core[:10], familiar[:6], new[:2]
 
 
 def sanitize_json_string(s):
@@ -51,9 +72,8 @@ def sanitize_json_string(s):
     return s
 
 
-
 def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
-    vocab_core, vocab_familiar, vocab_new = categorize_vocab()
+    vocab_core, vocab_familiar, vocab_new = categorize_vocab_smart()
 
     # Then slice if needed
     vocab_core = vocab_core[:6]
@@ -126,11 +146,11 @@ def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
     - Match the user's level: {user_profile.get("level", "beginner")}-appropriate grammar and vocabulary.
     - The prompt must be written in {task_lang}, the glossary in {instruction_lang}, and the answer in {target_lang}.
     - {formality_instruction}
-    - Provide ALL words for the glossary in dictionary(this is a must!) form (including from the suggested solution)
+    - Provide ALL words for the glossary in basic dictionary(this is a must!) form (including from the suggested solution)
     - The generated sentence MUST make sense. It cannot be something like "I drink an apple"
 
 
-    ## Grammar Maturity (for your planning):
+    ## Grammar Maturity (for your planning, avoid using "내", posessive, as the grammar point):
     {grammar_maturity_section}
 
     ## Vocabulary to use:

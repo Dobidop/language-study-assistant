@@ -27,7 +27,7 @@ Return your evaluation in the following JSON format:
   "corrected_answer": "...",
   "error_analysis": ["...", "..."],
   "grammar_focus": {grammar_focus},
-  "explanation_summary": "..."
+  "explanation_summary": "... (this explanation should be in English)"
 }}
     """
 
