@@ -53,8 +53,8 @@ This will:
 
 1. **Clone the repo**  
    ```bash
-   git clone https://github.com/yourusername/korean-study-assistant.git
-   cd korean-study-assistant
+   git clone https://github.com/Dobidop/language-study-assistant.git
+   cd language-study-assistant
    ```
 
 2. **Create a virtual environment and activate it**  
