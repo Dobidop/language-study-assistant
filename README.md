@@ -36,7 +36,11 @@ An interactive, AI-assisted Korean language learning platform that tracks your g
 
 ### Windows Users: Easy Setup
 
-Just run:
+1. **Clone the repo**  
+   ```bash
+   git clone https://github.com/Dobidop/language-study-assistant.git
+   ```
+2. **Run the setup batch file** 
 
 ```bash
 setup.bat
