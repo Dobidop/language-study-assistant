@@ -1,7 +1,6 @@
 import re
 import json
 from engine.llm_client import chat
-from engine.generator import sanitize_json_string
 from engine.llm_client import chat
 
 def normalize_grammar_id(raw_id: str) -> str:
@@ -145,3 +144,17 @@ Return JSON in this format:
         print("⚠️ Could not parse LLM response:", e)
         return []
 
+def sanitize_json_string(s):
+    s = s.strip()
+
+    # Remove <think>...</think> and anything before first {
+    s = re.sub(r"<think>.*?</think>", "", s, flags=re.DOTALL)
+    
+    # Keep only content between first "{" and last "}"
+    if "{" in s and "}" in s:
+        start = s.find("{")
+        end = s.rfind("}")
+        s = s[start:end+1]
+
+    s = s.replace('“', '"').replace('”', '"').replace("’", "'")
+    return s

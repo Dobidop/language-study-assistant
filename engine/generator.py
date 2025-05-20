@@ -1,208 +1,105 @@
 import json
-import re
-from engine.llm_client import chat
 import os
-import random
+from engine.llm_client import chat
+from engine.planner import select_review_and_new_items
+from engine.utils           import normalize_grammar_id, sanitize_json_string
+from engine.prompt_builder import build_exercise_prompt
+from datetime import datetime
 
-
-
-# Load vocab data
-VOCAB_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'vocab_data.json')
+# Paths
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+VOCAB_DATA_PATH = os.path.join(BASE_DIR, 'vocab_data.json')
 with open(VOCAB_DATA_PATH, 'r', encoding='utf-8') as f:
     VOCAB_DATA = json.load(f)
 
-def select_vocab_words(vocab_list, count=10, focus_rank=500, rank_deviation=300):
-    # Step 1: Prioritize by need
-    sorted_vocab = sorted(
-        vocab_list,
-        key=lambda v: (
-            v.get("lapses", 0) > 0,
-            v.get("ease", 2.5),
-            -v.get("reps", 0),
-            v.get("frequency_rank", 9999)
-        ),
-        reverse=True
-    )
+# Helper loaders
 
-    # Step 2: Filter by frequency rank deviation
-    close_rank_words = [v for v in sorted_vocab
-                        if abs(v.get("frequency_rank", 9999) - focus_rank) <= rank_deviation]
-
-    # Step 3: Random selection from different importance tiers
-    top_focus = close_rank_words[:count * 2]
-    low_reps = [v for v in close_rank_words if v.get("reps", 0) <= 2]
-
-    selected = random.sample(top_focus, min(5, len(top_focus))) + \
-               random.sample(low_reps, min(3, len(low_reps)))
-
-    # Fill up remaining from full pool with some randomness
-    remaining = [v for v in sorted_vocab if v not in selected]
-    selected += random.sample(remaining, max(0, count - len(selected)))
-
-    return selected[:count]
-
-def categorize_vocab_smart(shuffle=True, count=20):
-    selected = select_vocab_words(VOCAB_DATA, count=count)
-
-    core = [v["vocab"] for v in selected if v.get("ease", 0) > 2.5]
-    familiar = [v["vocab"] for v in selected if 1.5 < v.get("ease", 0) <= 2.5]
-    new = [v["vocab"] for v in selected if v.get("ease", 0) <= 1.5]
-
-    if shuffle:
-        random.shuffle(core)
-        random.shuffle(familiar)
-        random.shuffle(new)
-
-    return core[:10], familiar[:6], new[:2]
+def load_user_profile(path: str = None) -> dict:
+    path = path or os.path.join(BASE_DIR, 'user_profile.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
-def sanitize_json_string(s):
-    s = s.strip()
-
-    # Remove <think>...</think> and anything before first {
-    s = re.sub(r"<think>.*?</think>", "", s, flags=re.DOTALL)
-    
-    # Keep only content between first "{" and last "}"
-    if "{" in s and "}" in s:
-        start = s.find("{")
-        end = s.rfind("}")
-        s = s[start:end+1]
-
-    s = s.replace('“', '"').replace('”', '"').replace("’", "'")
-    return s
+def load_curriculum(path: str = None) -> dict:
+    path = path or os.path.join(BASE_DIR, 'korean.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
-def generate_exercise(user_profile, grammar_targets, recent_exercises=None):
-    vocab_core, vocab_familiar, vocab_new = categorize_vocab_smart()
+def load_vocab_data(path: str = None) -> dict:
+    path = path or VOCAB_DATA_PATH
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-    # Then slice if needed
-    vocab_core = vocab_core[:6]
-    vocab_familiar = vocab_familiar[:3]
-    vocab_new = vocab_new[:2]
+# Core generate_exercise now delegates prompt building
 
-
-    native_lang = user_profile.get("native_language", "English")
-    target_lang = user_profile.get("target_language", "Korean")
-    instruction_lang = user_profile.get("instruction_language", native_lang)
-    task_lang = user_profile.get("task_language", target_lang)
-
+def generate_exercise(user_profile: dict,
+                      grammar_targets: list,
+                      recent_exercises: list = None) -> dict:
+    # 1) Compute the “Grammar Maturity” section
+    grammar_summary = user_profile.get('grammar_summary', {})
     grammar_maturity_section = "\n".join(
-        f"- {g.replace('_', ' ')}: {info['status']}"
-        for g, info in user_profile.get("grammar_summary", {}).items()
+        f"- {normalize_grammar_id(gid)}: level {info.get('srs_level',0)}, next review {info.get('next_review_date','N/A')}"
+        for gid, info in grammar_summary.items()
+        if gid in grammar_targets
+    ) or "None"
+
+    # 2) Split vocab into new/familiar/core by reps
+    vocab_summary = user_profile.get('vocab_summary', {})
+    vocab_new, vocab_familiar, vocab_core = [], [], []
+    for w, info in vocab_summary.items():
+        reps = info.get('reps', 0)
+        if reps <= 1:
+            vocab_new.append(w)
+        elif reps <= 3:
+            vocab_familiar.append(w)
+        else:
+            vocab_core.append(w)
+
+    # 3) Delegate the big prompt construction here
+    prompt = build_exercise_prompt(
+        user_profile=user_profile,
+        grammar_targets=grammar_targets,
+        vocab_new=vocab_new,
+        vocab_familiar=vocab_familiar,
+        vocab_core=vocab_core,
+        grammar_maturity_section=grammar_maturity_section,
+        recent_exercises=recent_exercises
     )
+    
+    print(f' ==> [Line 60]: \033[38;2;102;209;152m[prompt]\033[0m({type(prompt).__name__}) = \033[38;2;111;95;170m{prompt}\033[0m')
+    print(f' ==> [Line 70]: \033[38;2;40;126;47m[vocab_new]\033[0m({type(vocab_new).__name__}) = \033[38;2;105;246;13m{vocab_new}\033[0m')
+    print(f' ==> [Line 71]: \033[38;2;14;96;225m[vocab_familiar]\033[0m({type(vocab_familiar).__name__}) = \033[38;2;145;38;28m{vocab_familiar}\033[0m')
+    print(f' ==> [Line 72]: \033[38;2;211;42;127m[vocab_core]\033[0m({type(vocab_core).__name__}) = \033[38;2;46;27;17m{vocab_core}\033[0m')
+    print(f' ==> [Line 73]: \033[38;2;232;154;166m[grammar_maturity_section]\033[0m({type(grammar_maturity_section).__name__}) = \033[38;2;15;197;31m{grammar_maturity_section}\033[0m')
 
-    formality_instruction = ""
-    preferred_formality = user_profile.get("learning_preferences", {}).get("preferred_formality", "polite")
+    # 4) Call the LLM correctly and parse its JSON
+    response_text = chat([
+        {"role": "system", "content": f"You are a helpful {user_profile.get('target_language','Korean')} tutor assistant."},
+        {"role": "user",   "content": prompt}
+    ], temperature=0.4)
 
-    if preferred_formality == "polite":
-        formality_instruction = "Use polite verb endings appropriate for friendly but respectful conversation (~어요/아요 endings)."
-    elif preferred_formality == "casual":
-        formality_instruction = "Use casual speech verb endings appropriate for close friends or younger people."
-    elif preferred_formality == "formal":
-        formality_instruction = "Use formal verb endings appropriate for official or respectful situations (~습니다 endings)."
-
-    # 👉 NEW: grammar_targets is now a list of dicts, not strings
-    if grammar_targets:
-        grammar_points_formatted = ", ".join(
-            f"{gt['description']} ({gt['id']})" for gt in grammar_targets
-        )
-    else:
-        grammar_points_formatted = "none"
-
-    prompt = f"""/no_think
-    You are a {target_lang} language tutor assistant. Your role is to generate structured learning tasks.
-
-    The user's profile:
-    - Proficiency level: {user_profile.get("level", "beginner")}
-    - Native language: {native_lang}
-    - Target language: {target_lang}
-    - Instruction language: {instruction_lang}
-    - Task language: {task_lang}
-
-    They want instructions and explanations in {instruction_lang}, but the exercise itself (the thing they will respond to) must be written entirely in {task_lang}.
-
-    ## Constraints:
-    - You must return only ONE exercise.
-    - Only ONE exercise should be returned — never include multiple items or numbered lists.
-    - Choose one exercise_type from the list below:
-        - "fill_in_blank": one blank in one sentence, clearly marked with ___.
-        - "multiple_choice"
-        - "translation"
-        - "open_prompt"
-    If exercise_type is "fill_in_blank":
-        - Prompt must contain one blank marked as ___. 
-        - It is very important that the blank part actually would be completed by the missing word(s) or particles! Be sure that the blank, "___", serves a purpose!
-        - expected_answer must be a string (for one blank).
-        - filled_sentence must be the full sentence with all blanks filled in correctly. 
-        - the blanks should also include any attached particles; i.e. "사과를" should always be blanked out as one word, never just as "___를". 
-            - For example: (expected answer=소주를) Incorrect prompt: 저는 ___를 마셔요. Correct prompt: 저는 ___ 마셔요
-        - do NOT leave any space between the blank part and other characters if the answer is supposed to be connected to those other characters.
-        - The blank MUST be at a place which lets the user practice the grammar points! Do not just 'blank' random words. 
-            - For example: If the exercise is about location of action, blanking "방에서" would be much better! Incorrect: (expected answer = 내) 저는 ___ 방에서 소주를 마셔요, Correct: (expected answer = 방에서) 저는 내 ___ 소주를 마셔요
-        - If the grammar point for the exercise is related to particles, then that is the word to replace blank
-    - Do NOT explain or comment on the exercise.
-    - The exercise should preferably (but not necessarily) match this type: {user_profile['learning_preferences']['preferred_exercise_types'][0]}
-    - It must reinforce these grammar points: {grammar_points_formatted}
-    - Match the user's level: {user_profile.get("level", "beginner")}-appropriate grammar and vocabulary.
-    - The prompt must be written in {task_lang}, the glossary in {instruction_lang}, and the answer in {target_lang}.
-    - {formality_instruction}
-    - Provide ALL words for the glossary in basic dictionary(this is a must!) form (including from the suggested solution)
-    - The generated sentence MUST make sense. It cannot be something like "I drink an apple"
+    safe = sanitize_json_string(response_text)
+    print(f' ==> [Line 76]: \033[38;2;92;44;89m[safe]\033[0m({type(safe).__name__}) = \033[38;2;169;96;16m{safe}\033[0m')
+    return json.loads(safe)
 
 
-    ## Grammar Maturity (for your planning, avoid using "내", posessive, as the grammar point):
-    {grammar_maturity_section}
+# Wrapper to use planner selections
 
-    ## Vocabulary to use:
-    - Core: {vocab_core}
-    - Familiar: {vocab_familiar}
-    - Allow up to 2 new words (optional): {vocab_new}, or other level appropriate words
-
-    ## Format:
-    Return ONLY one exercise as a valid JSON object with the following keys:
-    {{
-      "exercise_type": "...",
-      "prompt": "...",
-      "expected_answer": "...",
-      "filled_sentence": "...",
-      "glossary": {{ "term (in dictionary form)": "definition", ... }},
-      "translated_sentence": "filled_sentence, but translated to {instruction_lang}. This must also include any filled in blank spaces!",
-      "grammar_focus": [ ... ]
-    }}
+def generate_exercise_auto(
+    profile_path: str = None,
+    recent_exercises: list = None
+) -> dict:
     """
+    Selects grammar and vocabulary via SRS planner, then delegates to generate_exercise.
+    """
+    profile = load_user_profile(profile_path)
+    selections = select_review_and_new_items(profile_path=profile_path)
+    grammar_targets = [normalize_grammar_id(g) for g in
+                       selections['review_grammar'] + selections['new_grammar']]
+    return generate_exercise(profile, grammar_targets, recent_exercises)
 
-    if recent_exercises:
-        prompt += "\n## Session History:\n"
-        for idx, ex in enumerate(recent_exercises[-10:], 1):
-            prompt += f"- Exercise {idx}:\n"
-            prompt += f"  Type: {ex['exercise_type']}\n"
-            prompt += f"  Prompt: {ex['prompt']}\n"
-            prompt += f"  User Answer: {ex['user_answer']}\n"
-            prompt += f"  Expected: {ex['expected_answer']}\n"
-            prompt += f"  Result: {ex['result']}\n"
-        prompt += "\nAvoid repeating prompts, patterns, and/or patterns from the session history listed above.\n"
-
-    print(f' ==> [Line 164]: \033[38;2;176;134;198m[prompt]\033[0m({type(prompt).__name__}) = \033[38;2;127;177;201m{prompt}\033[0m')
-
-    response_text = chat(
-        messages=[
-            {"role": "system", "content": f"""You are a helpful {target_lang} tutor assistant."""},
-            {"role": "user", "content": prompt.strip()}
-        ],
-        temperature=0.4
-    )
-    response_text = response_text.replace("___ .","___.")
-    print(f' ==> [Line 175]: \033[38;2;51;223;163m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;119;128;184m{response_text}\033[0m')
-    try:
-        return json.loads(sanitize_json_string(response_text))
-    except json.JSONDecodeError:
-        print("⚠️ GPT response was not valid JSON:")
-        print(response_text)
-
-        with open("last_response_debug.txt", "w", encoding="utf-8") as f:
-            f.write(response_text)
-
-        return None
-
-
-
+# Example CLI usage
+if __name__ == '__main__':
+    ex = generate_exercise_auto()
+    print(json.dumps(ex, ensure_ascii=False, indent=2))

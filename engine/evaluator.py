@@ -1,6 +1,6 @@
 import json
 from engine.llm_client import chat
-from engine.generator import sanitize_json_string
+from engine.utils import sanitize_json_string
 
 def evaluate_answer(prompt, user_answer, expected_answer, grammar_focus, target_language="Korean"):
     """
@@ -18,6 +18,7 @@ User answer: {user_answer}
 
 Be sure to take into account the potential prompt formatting issue when evaluating the result.
 If this seems to be the case, then mark the question as correct ("is_correct": true)
+Only mark a question as correct if th spacing, if you notice it, is incorrect.
 
 ## Instructions:
 Return your evaluation in the following JSON format:
@@ -41,7 +42,7 @@ Return your evaluation in the following JSON format:
         temperature=0.2
     )
 
-    print(f' ==> [Line 39]: \033[38;2;24;247;188m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;243;132;71m{response_text}\033[0m')
+    print(f' ==> [Line 37]: \033[38;2;24;247;188m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;243;132;71m{response_text}\033[0m')
     
     try:
         return json.loads(sanitize_json_string(response_text))

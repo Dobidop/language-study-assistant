@@ -1,107 +1,134 @@
 import json
-import os
-from datetime import datetime
-from engine.utils import normalize_grammar_id
+from datetime import datetime, timedelta
+from pathlib import Path
 
-PROFILE_PATH = "user_profile.json"
+# Constants for SM-2 algorithm
+MIN_EASE_FACTOR = 1.3
+INITIAL_EASE = 2.5
+INITIAL_INTERVALS = [1, 6]  # days for first two repetitions
 
-def load_user_profile(path=PROFILE_PATH):
-    if not os.path.exists(path):
-        print("🆕 Creating new user profile...")
-        return {
-            "user_id": "user_001",
-            "level": "beginner",
-            "grammar_summary": {},
-            "common_errors": {},
-            "vocabulary": {
-                "core": {},
-                "familiar": {},
-                "newly_introduced": {}
-            },
-            "session_tracking": {
-                "last_session_date": None,
-                "exercises_completed": 0,
-                "correct_ratio_last_10": 0.0,
-                "grammar_points_seen": []
-            },
-            "learning_preferences": {
-                "max_new_words_per_session": 2,
-                "preferred_exercise_types": ["fill_in_blank", "translation"],
-                "prefers_korean_prompts": False,
-                "allow_open_tasks": True
-            }
-        }
+DEFAULT_PROFILE = {
+  "user_id": "user_001",
+  "user_level": "beginner",
+  "level": "beginner",
+  "native_language": "English",
+  "target_language": "Korean",
+  "instruction_language": "English",
+  "task_language": "Korean",
+  "session_tracking": {
+    "last_session_date": "",
+    "exercises_completed": 0,
+    "correct_ratio_last_10": 0.0,
+    "grammar_points_seen": []
+  },
+  "learning_preferences": {
+    "preferred_formality": "polite",
+    "max_new_words_per_session": 2,
+    "preferred_exercise_types": ["fill_in_blank", "translation"],
+    "prefers_korean_prompts": False,
+    "allow_open_tasks": True,
+    "reviews_per_session": 10,
+    "new_grammar_per_session": 2,
+    "new_vocab_per_session": 5
+  },
+  "grammar_summary": {},
+  "vocab_summary": {}
+}
 
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
 
-def save_user_profile(profile, path=PROFILE_PATH):
+def load_user_profile(path: str) -> dict:
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # first-run: write out a blank/default profile
+        save_user_profile(DEFAULT_PROFILE, path)
+        # make sure we return a fresh copy
+        return DEFAULT_PROFILE.copy()
+
+
+def save_user_profile(profile: dict, path: str = 'user_profile.json') -> None:
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(profile, f, indent=2, ensure_ascii=False)
-    print(f"✅ User profile saved to {path}")
+        json.dump(profile, f, ensure_ascii=False, indent=2)
 
-def update_user_profile(profile, feedback, exercise):
-    """Update the user profile with a gradual grammar mastery progression."""
 
-    # === Update Grammar Summary ===
-    for g in exercise.get("grammar_focus", []):
-        g_key = normalize_grammar_id(g)
-        summary = profile.setdefault("grammar_summary", {})
-        entry = summary.setdefault(g_key, {
-            "exposure": 0,
-            "status": "new",
-            "recent_correct_streak": 0
-        })
+def _apply_sm2(item: dict, correct: bool) -> None:
+    """
+    Applies a simplified SM-2 update to a single item (grammar or vocab).
+    Mutates item in-place to update interval, ease_factor, srs_level, lapses, next_review_date.
+    """
+    today = datetime.now().date()
 
-        # --- New progression logic ---
-        stages = ["new", "new_weak", "weak", "weak_medium", "medium", "medium_strong", "strong"]
-        current_stage = entry.get("status", "new")
-        if current_stage not in stages:
-            current_stage = "new"
+    # Initialize fields if missing
+    item.setdefault('ease_factor', INITIAL_EASE)
+    item.setdefault('interval', INITIAL_INTERVALS[0])
+    item.setdefault('reps', 0)
+    item.setdefault('lapses', 0)
 
-        idx = stages.index(current_stage)
+    # Quality: high if correct, low if incorrect
+    quality = 5 if correct else 2
 
-        # Always increment exposure
-        entry["exposure"] += 1
-
-        # Correct vs Mistake handling
-        if feedback["is_correct"]:
-            entry["recent_correct_streak"] += 1
-            # Promote after 2 consecutive corrects
-            if entry["recent_correct_streak"] >= 2 and idx < len(stages) - 1:
-                idx += 1
-                entry["recent_correct_streak"] = 0  # Reset streak after promotion
+    if quality < 3:
+        # Failure: reset repetitions
+        item['reps'] = 0
+        item['interval'] = INITIAL_INTERVALS[0]
+        item['lapses'] += 1
+        # Decrease ease_factor, but not below MIN_EASE_FACTOR
+        item['ease_factor'] = max(
+            MIN_EASE_FACTOR,
+            item['ease_factor'] - 0.2
+        )
+    else:
+        # Success: increment repetitions
+        item['reps'] += 1
+        if item['reps'] == 1:
+            item['interval'] = INITIAL_INTERVALS[0]
+        elif item['reps'] == 2:
+            item['interval'] = INITIAL_INTERVALS[1]
         else:
-            entry["recent_correct_streak"] = 0
-            if idx > 1:  # Don't demote back to "new"
-                idx -= 1
+            # From third repetition on, use ease factor
+            item['interval'] = round(item['interval'] * item['ease_factor'])
+        # Adjust ease factor slightly
+        delta = (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+        item['ease_factor'] = max(MIN_EASE_FACTOR, item['ease_factor'] + delta)
 
-        entry["status"] = stages[idx]
+    item['srs_level'] = item['reps']
+    # Schedule next review
+    item['next_review_date'] = (today + timedelta(days=item['interval'])).isoformat()
 
-    # === Update Common Errors ===
-    for err in feedback.get("error_analysis", []):
-        profile["common_errors"][err] = profile["common_errors"].get(err, 0) + 1
 
-    # === Update Vocabulary ===
-    for word in exercise.get("vocab_used", []):
-        vocab = profile.get("vocabulary", {})
-        if word in vocab.get("familiar", {}):
-            vocab["core"][word] = {
-                "confidence": 5,
-                "last_seen": datetime.today().strftime('%Y-%m-%d')
-            }
-            del vocab["familiar"][word]
-        elif word in vocab.get("newly_introduced", {}):
-            vocab["familiar"][word] = {
-                "confidence": 2,
-                "last_seen": datetime.today().strftime('%Y-%m-%d')
-            }
-            del vocab["newly_introduced"][word]
-        elif word not in vocab.get("core", {}):
-            vocab["newly_introduced"][word] = {
-                "introduced_by": f"session_{datetime.today().strftime('%Y_%m_%d')}"
-            }
+def update_user_profile(profile: dict, session_exercises: list) -> dict:
+    """
+    Updates the user profile based on session exercises.
+    Each exercise in session_exercises must have keys:
+      - 'grammar_focus': list of grammar IDs
+      - 'vocab_used': list of vocabulary strings
+      - 'is_correct': bool
+    Returns updated profile.
+    """
+    # Ensure necessary sections exist
+    profile.setdefault('grammar_summary', {})
+    profile.setdefault('vocab_summary', {})
 
-    # === Save Updated Profile ===
-    save_user_profile(profile)
+    for ex in session_exercises:
+        correct = ex.get('is_correct', False)
+        # Update grammar items
+        for gid in ex.get('grammar_focus', []):
+            gsum = profile['grammar_summary'].setdefault(
+                gid, {'exposure': 0, 'reps': 0, 'ease_factor': INITIAL_EASE,
+                      'interval': INITIAL_INTERVALS[0], 'lapses': 0}
+            )
+            # Increment exposure
+            gsum['exposure'] = gsum.get('exposure', 0) + 1
+            # Apply SM-2
+            _apply_sm2(gsum, correct)
 
+        # Update vocabulary items
+        for word in ex.get('vocab_used', []):
+            vsum = profile['vocab_summary'].setdefault(
+                word, {'reps': 0, 'ease_factor': INITIAL_EASE,
+                       'interval': INITIAL_INTERVALS[0], 'lapses': 0}
+            )
+            _apply_sm2(vsum, correct)
+
+    return profile
