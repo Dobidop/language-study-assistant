@@ -13,7 +13,7 @@
     "grammar_points_seen": []
   },
   "learning_preferences": {
-    "preferred_formality": "polite",
+    "preferred_formality": "polite informal",
     "max_new_words_per_session": 2,
     "preferred_exercise_types": [
       "fill_in_blank",
@@ -45,11 +45,11 @@
       "next_review_date": "2025-05-20"
     },
     "-아요-어요": {
-      "exposure": 7,
+      "exposure": 28,
       "reps": 0,
-      "ease_factor": 2.9000000000000004,
+      "ease_factor": 3.500000000000001,
       "interval": 1,
-      "lapses": 1,
+      "lapses": 6,
       "srs_level": 0,
       "next_review_date": "2025-05-21"
     },
@@ -60,6 +60,24 @@
       "interval": 1,
       "lapses": 2,
       "srs_level": 0,
+      "next_review_date": "2025-05-21"
+    },
+    "-이가": {
+      "exposure": 21,
+      "reps": 0,
+      "ease_factor": 3.1000000000000005,
+      "interval": 1,
+      "lapses": 5,
+      "srs_level": 0,
+      "next_review_date": "2025-05-21"
+    },
+    "-아요어요": {
+      "exposure": 1,
+      "reps": 1,
+      "ease_factor": 2.6,
+      "interval": 1,
+      "lapses": 0,
+      "srs_level": 1,
       "next_review_date": "2025-05-21"
     }
   },

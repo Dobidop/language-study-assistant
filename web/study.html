@@ -70,6 +70,13 @@
     Ending session, summarizing your progress... please wait ⏳
   </div>
 <h1>Language Study Assistant</h1>
+<div style="text-align:center; margin-top: 20px;">
+  <label for="exerciseType">Exercise Type:</label>
+  <select id="exerciseType">
+    <option value="fill_in_blank">Fill in the Blank</option>
+    <option value="translation">Translation</option>
+  </select>
+</div>
 
 <div id="progress">Session not started</div>
 
@@ -165,7 +172,13 @@ async function endSession() {
 async function fetchNewExercise() {
   if (!sessionActive) return;
 
-  const response = await fetch("/api/exercise/new", { method: "POST" });
+  const type = document.getElementById("exerciseType").value;
+
+  const response = await fetch("/api/exercise/new", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ exercise_type: type })
+  });
   const data = await response.json();
 
   if (data.exercise) {
@@ -255,11 +268,13 @@ async function submitAnswer() {
   }
 }
 
-// --- Detect ?start=1 from Dashboard ---
 const params = new URLSearchParams(window.location.search);
 if (params.get("start") === "1") {
+  const type = params.get("type") || "fill_in_blank";
+  document.getElementById("exerciseType").value = type;
   startSession();
 }
+
 </script>
 
 </body>

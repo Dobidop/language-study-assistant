@@ -35,7 +35,8 @@ def load_vocab_data(path: str = None) -> dict:
 
 def generate_exercise(user_profile: dict,
                       grammar_targets: list,
-                      recent_exercises: list = None) -> dict:
+                      recent_exercises: list = None,
+                      exercise_type: str = "fill_in_blank") -> dict:
     # 1) Compute the “Grammar Maturity” section
     grammar_summary = user_profile.get('grammar_summary', {})
     grammar_maturity_section = "\n".join(
@@ -64,7 +65,8 @@ def generate_exercise(user_profile: dict,
         vocab_familiar=vocab_familiar,
         vocab_core=vocab_core,
         grammar_maturity_section=grammar_maturity_section,
-        recent_exercises=recent_exercises
+        recent_exercises=recent_exercises,
+        forced_exercise_type=exercise_type
     )
     
     print(f' ==> [Line 60]: \033[38;2;102;209;152m[prompt]\033[0m({type(prompt).__name__}) = \033[38;2;111;95;170m{prompt}\033[0m')
@@ -88,8 +90,10 @@ def generate_exercise(user_profile: dict,
 
 def generate_exercise_auto(
     profile_path: str = None,
-    recent_exercises: list = None
+    recent_exercises: list = None,
+    exercise_type: str = "fill_in_blank"
 ) -> dict:
+
     """
     Selects grammar and vocabulary via SRS planner, then delegates to generate_exercise.
     """
@@ -97,7 +101,8 @@ def generate_exercise_auto(
     selections = select_review_and_new_items(profile_path=profile_path)
     grammar_targets = [normalize_grammar_id(g) for g in
                        selections['review_grammar'] + selections['new_grammar']]
-    return generate_exercise(profile, grammar_targets, recent_exercises)
+    return generate_exercise(profile, grammar_targets, recent_exercises, exercise_type)
+
 
 # Example CLI usage
 if __name__ == '__main__':

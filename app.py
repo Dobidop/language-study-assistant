@@ -60,12 +60,13 @@ class ExerciseSessionManager:
         save_user_profile(self.profile, "user_profile.json")
         return summary
 
-    def generate_exercise(self):
-        # Use SRS-driven generator
+    def generate_exercise(self, exercise_type="fill_in_blank"):
         exercise = generate_exercise(
             profile_path="user_profile.json",
-            recent_exercises=self.recent_exercises
+            recent_exercises=self.recent_exercises,
+            exercise_type=exercise_type  # 👈 pass it forward
         )
+
         if not exercise:
             return None
         exercise_id = str(uuid4())
@@ -87,8 +88,14 @@ class ExerciseSessionManager:
         if not matching:
             return None
         # Fast match
-        filled = build_filled_sentence(matching.get('prompt', ''), user_answer)
         expected = matching.get('filled_sentence', '')
+        exercise_type = matching.get('exercise_type')
+
+        if exercise_type == "fill_in_blank":
+            filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
+        else:
+            filled = user_answer.strip()  # For translation, just use their raw input
+
         if filled.strip() == expected.strip():
             feedback = {
                 'is_correct': True,
@@ -143,10 +150,13 @@ def api_start_session():
 
 @app.route('/api/exercise/new', methods=['POST'])
 def api_new_exercise():
-    exercise = manager.generate_exercise()
+    data = request.get_json()
+    exercise_type = data.get("exercise_type", "fill_in_blank")  # fallback
+    exercise = manager.generate_exercise(exercise_type=exercise_type)
     if exercise:
         return jsonify({'exercise': exercise}), 200
     return jsonify({'error': 'Could not generate exercise.'}), 500
+
 
 @app.route('/api/exercise/answer', methods=['POST'])
 def api_answer_exercise():

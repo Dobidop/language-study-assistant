@@ -215,8 +215,10 @@ async function fetchSessionHistory() {
 }
 
 function goStudy() {
-  window.location.href = "study.html?start=1";
+  const selected = document.getElementById("exerciseTypeSelect")?.value || "fill_in_blank";
+  window.location.href = `study.html?start=1&type=${selected}`;
 }
+
 
 fetchSessionHistory();
 </script>
