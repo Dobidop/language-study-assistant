@@ -2,8 +2,8 @@ import json
 import os
 from engine.llm_client import chat
 from engine.planner import select_review_and_new_items
-from engine.utils           import normalize_grammar_id, sanitize_json_string
-from engine.prompt_builder import build_exercise_prompt
+from engine.utils import normalize_grammar_id, sanitize_json_string
+from engine.exercise_types import ExerciseTypeFactory, ExerciseConfig, generate_exercise_with_type
 from datetime import datetime
 
 # Paths
@@ -43,8 +43,6 @@ def load_curriculum(path: str = None) -> dict:
 def load_vocab_data(path: str = None) -> dict:
     """
     Load vocabulary data and ensure it's in dictionary format.
-    
-    Expected format: {"word": {"translation": "...", "frequency_rank": 123, ...}}
     """
     path = path or VOCAB_DATA_PATH
     with open(path, 'r', encoding='utf-8') as f:
@@ -65,69 +63,162 @@ def load_vocab_data(path: str = None) -> dict:
     else:
         raise ValueError(f"Invalid vocab_data format: {type(vocab_data)}")
 
-# Core generate_exercise now delegates prompt building
+
+def generate_exercise_legacy(user_profile: dict,
+                           grammar_targets: list,
+                           recent_exercises: list = None,
+                           exercise_type: str = "translation") -> dict:
+    """
+    Legacy exercise generation for translation type (until migrated to new system).
+    """
+    target_lang = user_profile.get('target_language', 'Korean')
+    native_lang = user_profile.get('native_language', 'English')
+    instruction_lang = user_profile.get('instruction_language', 'English')
+    level = user_profile.get('level', 'beginner')
+    formality = user_profile.get('learning_preferences', {}).get('preferred_formality', 'polite')
+    
+    grammar_points_formatted = "\n" + "\n".join(f"- {g}" for g in grammar_targets)
+    
+    prompt = f"""/no_think
+You are a {target_lang} language tutor assistant. Create a translation exercise.
+
+## User Profile:
+- Proficiency: {level}
+- Native language: {native_lang}
+- Target language: {target_lang}
+- Instructions in: {instruction_lang}
+- Formality level: {formality} (VERY IMPORTANT!)
+
+## Exercise Requirements:
+- Exercise type: "translation"
+- Provide a sentence in {instruction_lang} to translate to {target_lang}
+- Target these grammar points: {grammar_points_formatted}
+- Use {formality} formality level in the translation
+
+## Response Format:
+{{
+  "exercise_type": "translation",
+  "prompt": "English sentence to translate",
+  "expected_answer": "correct Korean translation",
+  "filled_sentence": "same as expected_answer",
+  "glossary": {{"term": "definition"}},
+  "translated_sentence": "same as prompt",
+  "grammar_focus": ["grammar IDs"]
+}}"""
+
+    response_text = chat([
+        {"role": "system", "content": f"You are a helpful {target_lang} tutor assistant."},
+        {"role": "user", "content": prompt}
+    ], temperature=0.4)
+
+    safe = sanitize_json_string(response_text)
+    return json.loads(safe)
+
 
 def generate_exercise(user_profile: dict,
                       grammar_targets: list,
                       recent_exercises: list = None,
                       exercise_type: str = "fill_in_blank") -> dict:
-    # 1) Compute the "Grammar Maturity" section
-    grammar_summary = user_profile.get('grammar_summary', {})
-    grammar_maturity_section = "\n".join(
-        f"- {normalize_grammar_id(gid)}: level {info.get('srs_level',0)}, next review {info.get('next_review_date','N/A')}"
-        for gid, info in grammar_summary.items()
-        if gid in grammar_targets
-    ) or "None"
-
-    # 2) Split vocab into new/familiar/core by reps
-    vocab_summary = user_profile.get('vocab_summary', {})
-    vocab_new, vocab_familiar, vocab_core = [], [], []
-    for w, info in vocab_summary.items():
-        reps = info.get('reps', 0)
-        if reps <= 1:
-            vocab_new.append(w)
-        elif reps <= 3:
-            vocab_familiar.append(w)
-        else:
-            vocab_core.append(w)
-
-    # 3) Delegate the big prompt construction here
-    prompt = build_exercise_prompt(
-        user_profile=user_profile,
-        grammar_targets=grammar_targets,
-        vocab_new=vocab_new,
-        vocab_familiar=vocab_familiar,
-        vocab_core=vocab_core,
-        grammar_maturity_section=grammar_maturity_section,
-        recent_exercises=recent_exercises,
-        forced_exercise_type=exercise_type
-    )
+    """
+    Generate an exercise using the new modular system or legacy fallback.
+    """
+    print(f"🎯 Generating {exercise_type} exercise...")
     
-    print(f' ==> [Line 60]: \033[38;2;102;209;152m[prompt]\033[0m({type(prompt).__name__}) = \033[38;2;111;95;170m{prompt}\033[0m')
-    print(f' ==> [Line 70]: \033[38;2;40;126;47m[vocab_new]\033[0m({type(vocab_new).__name__}) = \033[38;2;105;246;13m{vocab_new}\033[0m')
-    print(f' ==> [Line 71]: \033[38;2;14;96;225m[vocab_familiar]\033[0m({type(vocab_familiar).__name__}) = \033[38;2;145;38;28m{vocab_familiar}\033[0m')
-    print(f' ==> [Line 72]: \033[38;2;211;42;127m[vocab_core]\033[0m({type(vocab_core).__name__}) = \033[38;2;46;27;17m{vocab_core}\033[0m')
-    print(f' ==> [Line 73]: \033[38;2;232;154;166m[grammar_maturity_section]\033[0m({type(grammar_maturity_section).__name__}) = \033[38;2;15;197;31m{grammar_maturity_section}\033[0m')
+    # Check if exercise type is supported by new system
+    available_types = ExerciseTypeFactory.get_available_types()
+    
+    if exercise_type in available_types:
+        # Use new modular system
+        print(f"✅ Using new modular system for {exercise_type}")
+        
+        # Split vocab into categories by SRS level
+        vocab_summary = user_profile.get('vocab_summary', {})
+        vocab_new, vocab_familiar, vocab_core = [], [], []
+        for w, info in vocab_summary.items():
+            reps = info.get('reps', 0)
+            if reps <= 1:
+                vocab_new.append(w)
+            elif reps <= 3:
+                vocab_familiar.append(w)
+            else:
+                vocab_core.append(w)
+        
+        # Compute grammar maturity section
+        grammar_summary = user_profile.get('grammar_summary', {})
+        grammar_maturity_section = "\n".join(
+            f"- {normalize_grammar_id(gid)}: level {info.get('srs_level',0)}, next review {info.get('next_review_date','N/A')}"
+            for gid, info in grammar_summary.items()
+            if gid in grammar_targets
+        ) or "None"
+        
+        # Create exercise configuration
+        config = ExerciseConfig(
+            user_profile=user_profile,
+            grammar_targets=grammar_targets,
+            vocab_new=vocab_new,
+            vocab_familiar=vocab_familiar,
+            vocab_core=vocab_core,
+            grammar_maturity_section=grammar_maturity_section,
+            recent_exercises=recent_exercises
+        )
+        
+        # Generate exercise using modular system
+        exercise_data = generate_exercise_with_type(exercise_type, config)
+        
+        # Call LLM with generated prompt
+        response_text = chat([
+            {"role": "system", "content": f"You are a helpful {user_profile.get('target_language','Korean')} tutor assistant."},
+            {"role": "user", "content": exercise_data['prompt']}
+        ], temperature=0.4)
+        
+        # Parse and validate response
+        try:
+            safe = sanitize_json_string(response_text)
+            exercise = json.loads(safe)
+            
+            # Validate using exercise-specific validator
+            is_valid, errors = exercise_data['validator'](exercise)
+            
+            if not is_valid:
+                print(f"⚠️  Exercise validation failed: {errors}")
+                print(f"Generated exercise: {exercise}")
+                # Return anyway but log the issues
+            
+            return exercise
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ Failed to parse LLM response as JSON: {e}")
+            print(f"Raw response: {response_text[:200]}...")
+            
+            # Return a fallback exercise
+            return {
+                "exercise_type": exercise_type,
+                "prompt": "Error generating exercise",
+                "expected_answer": "",
+                "filled_sentence": "",
+                "glossary": {},
+                "translated_sentence": "",
+                "grammar_focus": grammar_targets,
+                "error": "Failed to parse LLM response"
+            }
+    
+    elif exercise_type == "translation":
+        # Use legacy system for translation
+        print(f"⚠️  Using legacy system for {exercise_type}")
+        return generate_exercise_legacy(user_profile, grammar_targets, recent_exercises, exercise_type)
+    
+    else:
+        # Unknown exercise type
+        print(f"❌ Unknown exercise type: {exercise_type}")
+        print(f"Available types: {available_types}")
+        raise ValueError(f"Unsupported exercise type: {exercise_type}")
 
-    # 4) Call the LLM correctly and parse its JSON
-    response_text = chat([
-        {"role": "system", "content": f"You are a helpful {user_profile.get('target_language','Korean')} tutor assistant."},
-        {"role": "user",   "content": prompt}
-    ], temperature=0.4)
-
-    safe = sanitize_json_string(response_text)
-    print(f' ==> [Line 76]: \033[38;2;92;44;89m[safe]\033[0m({type(safe).__name__}) = \033[38;2;169;96;16m{safe}\033[0m')
-    return json.loads(safe)
-
-
-# Wrapper to use planner selections
 
 def generate_exercise_auto(
     profile_path: str = None,
     recent_exercises: list = None,
     exercise_type: str = "fill_in_blank"
 ) -> dict:
-
     """
     Selects grammar and vocabulary via SRS planner, then delegates to generate_exercise.
     """
@@ -135,10 +226,47 @@ def generate_exercise_auto(
     selections = select_review_and_new_items(profile_path=profile_path)
     grammar_targets = [normalize_grammar_id(g) for g in
                        selections['review_grammar'] + selections['new_grammar']]
+    
+    if not grammar_targets:
+        print("⚠️  No grammar targets found, using default beginner grammar")
+        grammar_targets = ['-이에요_예요', '-아요_어요']  # Default beginner grammar
+    
     return generate_exercise(profile, grammar_targets, recent_exercises, exercise_type)
+
+
+def get_exercise_type_info() -> dict:
+    """
+    Get information about available exercise types for the frontend.
+    """
+    return {
+        'available_types': ExerciseTypeFactory.get_available_types(),
+        'type_info': ExerciseTypeFactory.get_type_info(),
+        'legacy_types': ['translation']
+    }
+
+
+def validate_exercise_type(exercise_type: str) -> bool:
+    """
+    Check if an exercise type is valid/supported.
+    """
+    available = ExerciseTypeFactory.get_available_types()
+    legacy = ['translation']
+    return exercise_type in available or exercise_type in legacy
 
 
 # Example CLI usage
 if __name__ == '__main__':
-    ex = generate_exercise_auto()
-    print(json.dumps(ex, ensure_ascii=False, indent=2))
+    print("🧪 Testing exercise generation...")
+    
+    # Test each exercise type
+    test_types = ['fill_in_blank', 'multiple_choice', 'fill_multiple_blanks', 'error_correction', 'sentence_building']
+    
+    for ex_type in test_types:
+        try:
+            print(f"\n--- Testing {ex_type} ---")
+            ex = generate_exercise_auto(exercise_type=ex_type)
+            print(f"✅ {ex_type}: {ex.get('prompt', 'No prompt')[:50]}...")
+        except Exception as e:
+            print(f"❌ {ex_type}: {e}")
+    
+    # print(f"\n📋 Available exercise types: {get_exercise_type_info()}"))

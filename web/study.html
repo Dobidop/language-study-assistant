@@ -24,17 +24,58 @@
       margin-top: 20px;
       text-align: center;
     }
-    input[type="text"] {
+    input[type="text"], textarea {
       width: 500px;
       padding: 10px;
       margin-top: 10px;
       font-size: 16px;
+    }
+    textarea {
+      height: 80px;
+      resize: vertical;
     }
     button {
       padding: 10px 20px;
       margin: 10px;
       font-size: 16px;
       cursor: pointer;
+    }
+    .choice-button {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+      padding: 15px;
+      text-align: left;
+      background-color: #f0f0f0;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .choice-button:hover {
+      background-color: #e0e0e0;
+      border-color: #007bff;
+    }
+    .choice-button.selected {
+      background-color: #d4edda;
+      border-color: #28a745;
+    }
+    .word-piece {
+      display: inline-block;
+      margin: 5px;
+      padding: 10px 15px;
+      background-color: #e9ecef;
+      border: 2px solid #ced4da;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .word-piece:hover {
+      background-color: #dee2e6;
+    }
+    .word-piece.selected {
+      background-color: #d1ecf1;
+      border-color: #17a2b8;
     }
     #feedback.correct {
       background-color: #d4edda;
@@ -63,17 +104,41 @@
     #backButton:hover {
       background-color: #aaa;
     }
+    .multiple-blanks {
+      display: inline-block;
+      margin: 0 5px;
+    }
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.8);
+      z-index: 9999;
+      text-align: center;
+      padding-top: 200px;
+      font-size: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.8); z-index:9999; text-align:center; padding-top:200px; font-size:20px; font-weight:bold;">
+  <div id="loadingOverlay">
     Ending session, summarizing your progress... please wait ⏳
   </div>
+
 <h1>Language Study Assistant</h1>
+
 <div style="text-align:center; margin-top: 20px;">
   <label for="exerciseType">Exercise Type:</label>
   <select id="exerciseType">
     <option value="fill_in_blank">Fill in the Blank</option>
+    <option value="fill_multiple_blanks">Fill Multiple Blanks</option>
+    <option value="multiple_choice">Multiple Choice</option>
+    <option value="error_correction">Error Correction</option>
+    <option value="sentence_building">Sentence Building</option>
     <option value="translation">Translation</option>
   </select>
 </div>
@@ -83,9 +148,30 @@
 <div id="exercise">
   <strong>Exercise:</strong> 
   <p id="prompt">Press "Start New Session" to begin!</p>
-  <input type="text" id="userAnswer" placeholder="Type your answer..." disabled>
+  
+  <!-- Different input types for different exercises -->
+  <div id="textInput" style="display: none;">
+    <input type="text" id="userAnswer" placeholder="Type your answer...">
+  </div>
+  
+  <div id="textareaInput" style="display: none;">
+    <textarea id="userAnswerTextarea" placeholder="Type your answer..."></textarea>
+  </div>
+  
+  <div id="multipleChoiceInput" style="display: none;">
+    <div id="choices"></div>
+  </div>
+  
+  <div id="sentenceBuildingInput" style="display: none;">
+    <p><strong>Available words:</strong></p>
+    <div id="availableWords"></div>
+    <p><strong>Your sentence:</strong></p>
+    <div id="builtSentence" style="min-height: 50px; border: 1px dashed #ccc; padding: 10px; margin: 10px 0;"></div>
+  </div>
+  
   <br>
   <button id="submitAnswerBtn" disabled>Submit Answer</button>
+  <button id="clearAnswerBtn" style="display: none;">Clear</button>
 </div>
 
 <div id="translationBox" style="display: none;">
@@ -115,12 +201,25 @@
 let currentExerciseId = null;
 let sessionActive = false;
 let exercisesCompleted = 0;
+let currentExerciseType = 'fill_in_blank';
+let selectedChoice = null;
+let selectedWords = [];
 
 document.getElementById("startSessionBtn").addEventListener("click", startSession);
 document.getElementById("endSessionBtn").addEventListener("click", endSession);
 document.getElementById("submitAnswerBtn").addEventListener("click", submitAnswer);
+document.getElementById("clearAnswerBtn").addEventListener("click", clearAnswer);
+
+// Handle Enter key for text inputs
 document.getElementById("userAnswer").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
+    event.preventDefault();
+    submitAnswer();
+  }
+});
+
+document.getElementById("userAnswerTextarea").addEventListener("keypress", function(event) {
+  if (event.key === "Enter" && event.ctrlKey) {
     event.preventDefault();
     submitAnswer();
   }
@@ -145,12 +244,12 @@ async function startSession() {
 }
 
 async function endSession() {
-  document.getElementById("loadingOverlay").style.display = "block";  // Show loading screen
+  document.getElementById("loadingOverlay").style.display = "block";
 
   const response = await fetch("/api/session/end", { method: "POST" });
   const data = await response.json();
 
-  document.getElementById("loadingOverlay").style.display = "none";  // Hide it after response
+  document.getElementById("loadingOverlay").style.display = "none";
 
   if (response.ok && data.summary) {
     sessionActive = false;
@@ -166,13 +265,45 @@ async function endSession() {
   }
 }
 
+function hideAllInputs() {
+  document.getElementById("textInput").style.display = "none";
+  document.getElementById("textareaInput").style.display = "none";
+  document.getElementById("multipleChoiceInput").style.display = "none";
+  document.getElementById("sentenceBuildingInput").style.display = "none";
+  document.getElementById("clearAnswerBtn").style.display = "none";
+  selectedChoice = null;
+  selectedWords = [];
+}
 
-
+function showInputForExerciseType(exerciseType) {
+  hideAllInputs();
+  
+  switch(exerciseType) {
+    case 'fill_in_blank':
+    case 'fill_multiple_blanks':
+      document.getElementById("textInput").style.display = "block";
+      document.getElementById("userAnswer").focus();
+      break;
+    case 'translation':
+      document.getElementById("textareaInput").style.display = "block";
+      document.getElementById("userAnswerTextarea").focus();
+      break;
+    case 'multiple_choice':
+    case 'error_correction':
+      document.getElementById("multipleChoiceInput").style.display = "block";
+      break;
+    case 'sentence_building':
+      document.getElementById("sentenceBuildingInput").style.display = "block";
+      document.getElementById("clearAnswerBtn").style.display = "inline-block";
+      break;
+  }
+}
 
 async function fetchNewExercise() {
   if (!sessionActive) return;
 
   const type = document.getElementById("exerciseType").value;
+  currentExerciseType = type;
 
   const response = await fetch("/api/exercise/new", {
     method: "POST",
@@ -181,24 +312,39 @@ async function fetchNewExercise() {
   });
   const data = await response.json();
 
-  if (data.exercise) {
+  if (data.exercise && !data.exercise.error) {
     exercisesCompleted++;
-    document.getElementById("prompt").textContent = data.exercise.prompt;
-    currentExerciseId = data.exercise.exercise_id;
+    const exercise = data.exercise;
+    
+    document.getElementById("prompt").textContent = exercise.prompt;
+    currentExerciseId = exercise.exercise_id;
+    
+    // Reset inputs
     document.getElementById("userAnswer").value = "";
+    document.getElementById("userAnswerTextarea").value = "";
     document.getElementById("userAnswer").disabled = false;
+    document.getElementById("userAnswerTextarea").disabled = false;
     document.getElementById("submitAnswerBtn").disabled = false;
-    document.getElementById("userAnswer").focus();
     document.getElementById("feedback").style.display = "none";
 
+    // Show appropriate input type
+    showInputForExerciseType(type);
+    
+    // Handle exercise-specific UI
+    if (type === 'multiple_choice' || type === 'error_correction') {
+      setupMultipleChoice(exercise);
+    } else if (type === 'sentence_building') {
+      setupSentenceBuilding(exercise);
+    }
+
     // Update progress
-    document.getElementById("progress").textContent = `Exercise ${exercisesCompleted}`;
+    document.getElementById("progress").textContent = `Exercise ${exercisesCompleted} (${type})`;
 
     // Show glossary
-    if (data.exercise.glossary) {
+    if (exercise.glossary) {
       const glossaryList = document.getElementById("glossaryList");
       glossaryList.innerHTML = "";
-      for (const [word, meaning] of Object.entries(data.exercise.glossary)) {
+      for (const [word, meaning] of Object.entries(exercise.glossary)) {
         const li = document.createElement("li");
         li.textContent = `${word}: ${meaning}`;
         glossaryList.appendChild(li);
@@ -209,29 +355,131 @@ async function fetchNewExercise() {
     }
 
     // Show grammar focus
-    if (data.exercise.grammar_focus) {
-      document.getElementById("grammarList").textContent = data.exercise.grammar_focus.join(", ");
+    if (exercise.grammar_focus) {
+      document.getElementById("grammarList").textContent = exercise.grammar_focus.join(", ");
       document.getElementById("grammarFocus").style.display = "block";
     } else {
       document.getElementById("grammarFocus").style.display = "none";
     }
 
     // Show translated sentence
-    if (data.exercise.translated_sentence) {
-      document.getElementById("translatedSentence").textContent = data.exercise.translated_sentence;
+    if (exercise.translated_sentence) {
+      document.getElementById("translatedSentence").textContent = exercise.translated_sentence;
       document.getElementById("translationBox").style.display = "block";
     } else {
       document.getElementById("translationBox").style.display = "none";
     }
 
   } else {
-    document.getElementById("prompt").textContent = "⚠️ Could not load exercise.";
+    const errorMsg = data.error || data.exercise?.error || "Could not load exercise.";
+    document.getElementById("prompt").textContent = `⚠️ ${errorMsg}`;
+    document.getElementById("submitAnswerBtn").disabled = true;
   }
 }
 
+function setupMultipleChoice(exercise) {
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+  
+  const choices = exercise.choices || exercise.sentences || {};
+  
+  for (const [key, value] of Object.entries(choices)) {
+    const button = document.createElement("button");
+    button.className = "choice-button";
+    button.textContent = `${key}. ${value}`;
+    button.onclick = () => selectChoice(key, button);
+    choicesDiv.appendChild(button);
+  }
+}
+
+function selectChoice(choice, buttonElement) {
+  // Remove selection from all buttons
+  document.querySelectorAll('.choice-button').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  
+  // Select this button
+  buttonElement.classList.add('selected');
+  selectedChoice = choice;
+}
+
+function setupSentenceBuilding(exercise) {
+  const availableDiv = document.getElementById("availableWords");
+  const builtDiv = document.getElementById("builtSentence");
+  
+  availableDiv.innerHTML = "";
+  builtDiv.innerHTML = "";
+  selectedWords = [];
+  
+  const wordPieces = exercise.word_pieces || [];
+  
+  wordPieces.forEach((word, index) => {
+    const span = document.createElement("span");
+    span.className = "word-piece";
+    span.textContent = word;
+    span.onclick = () => selectWord(word, index);
+    span.dataset.index = index;
+    availableDiv.appendChild(span);
+  });
+}
+
+function selectWord(word, index) {
+  const wordElement = document.querySelector(`[data-index="${index}"]`);
+  
+  if (wordElement.classList.contains('selected')) {
+    // Remove from selected
+    wordElement.classList.remove('selected');
+    selectedWords = selectedWords.filter(w => w !== word);
+  } else {
+    // Add to selected
+    wordElement.classList.add('selected');
+    selectedWords.push(word);
+  }
+  
+  // Update built sentence display
+  const builtDiv = document.getElementById("builtSentence");
+  builtDiv.textContent = selectedWords.join(' ') || 'Click words to build your sentence...';
+}
+
+function clearAnswer() {
+  selectedWords = [];
+  selectedChoice = null;
+  
+  // Clear all selections
+  document.querySelectorAll('.word-piece').forEach(piece => {
+    piece.classList.remove('selected');
+  });
+  document.querySelectorAll('.choice-button').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  
+  document.getElementById("builtSentence").textContent = 'Click words to build your sentence...';
+  document.getElementById("userAnswer").value = "";
+  document.getElementById("userAnswerTextarea").value = "";
+}
+
 async function submitAnswer() {
-  const userAnswer = document.getElementById("userAnswer").value.trim();
-  if (!currentExerciseId || !userAnswer) {
+  let userAnswer;
+  
+  // Get answer based on exercise type
+  switch(currentExerciseType) {
+    case 'fill_in_blank':
+    case 'fill_multiple_blanks':
+      userAnswer = document.getElementById("userAnswer").value.trim();
+      break;
+    case 'translation':
+      userAnswer = document.getElementById("userAnswerTextarea").value.trim();
+      break;
+    case 'multiple_choice':
+    case 'error_correction':
+      userAnswer = selectedChoice;
+      break;
+    case 'sentence_building':
+      userAnswer = selectedWords;
+      break;
+  }
+  
+  if (!currentExerciseId || !userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)) {
     alert("Please enter your answer before submitting.");
     return;
   }
@@ -251,30 +499,60 @@ async function submitAnswer() {
 
   if (data.feedback) {
     if (data.feedback.is_correct) {
+      feedbackDiv.className = "correct";
       feedbackDiv.innerHTML = `
-        <p class="correct">✅ Correct!</p>
+        <p>✅ Correct!</p>
         <p><strong>Explanation:</strong> ${data.feedback.explanation_summary}</p>
         <button id="nextExerciseBtn">➡️ Next Exercise</button>
       `;
-      document.getElementById("nextExerciseBtn").addEventListener("click", fetchNewExercise);
     } else {
+      feedbackDiv.className = "incorrect";
+      let errorAnalysis = "";
+      if (data.feedback.error_analysis && data.feedback.error_analysis.length > 0) {
+        errorAnalysis = `
+          <p><strong>Issues found:</strong></p>
+          <ul>
+            ${data.feedback.error_analysis.map(err => `<li>${err}</li>`).join("")}
+          </ul>
+        `;
+      }
+      
       feedbackDiv.innerHTML = `
-        <p class="incorrect">❌ Not quite right.</p>
-        <p><strong>Suggested Correction:</strong> ${data.feedback.corrected_answer}</p>
-        <p><strong>Explanation:</strong></p>
-        <ul>
-          ${data.feedback.error_analysis.map(err => `<li>${err}</li>`).join("")}
-        </ul>
+        <p>❌ Not quite right.</p>
+        <p><strong>Correct Answer:</strong> ${data.feedback.corrected_answer}</p>
+        ${errorAnalysis}
+        <p><strong>Explanation:</strong> ${data.feedback.explanation_summary || 'Review the grammar points above.'}</p>
         <button id="nextExerciseBtn">➡️ Next Exercise</button>
       `;
-      document.getElementById("nextExerciseBtn").addEventListener("click", fetchNewExercise);
     }
-
+    
+    document.getElementById("nextExerciseBtn").addEventListener("click", fetchNewExercise);
   } else {
-    feedbackDiv.innerHTML = `<p class="incorrect">⚠️ Could not evaluate answer.</p>`;
+    feedbackDiv.className = "incorrect";
+    feedbackDiv.innerHTML = `<p>⚠️ Could not evaluate answer.</p>`;
   }
 }
 
+// Handle exercise type change
+document.getElementById("exerciseType").addEventListener("change", function() {
+  const newType = this.value;
+  
+  if (sessionActive) {
+    // If session is active, automatically fetch new exercise of the selected type
+    const confirmed = confirm(`Switch to ${newType} exercise? This will generate a new exercise.`);
+    if (confirmed) {
+      fetchNewExercise();
+    } else {
+      // Revert to current exercise type if user cancels
+      this.value = currentExerciseType;
+    }
+  } else {
+    // If no session active, just update the current type for next session
+    currentExerciseType = newType;
+  }
+});
+
+// Auto-start if URL parameters are present
 const params = new URLSearchParams(window.location.search);
 if (params.get("start") === "1") {
   const type = params.get("type") || "fill_in_blank";
