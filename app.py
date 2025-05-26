@@ -136,14 +136,45 @@ class ExerciseSessionManager:
         
         # Handle different exercise types
         if exercise_type == 'fill_in_blank':
-            filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
-            comparison_text = filled
+            # Check if user provided the complete sentence or just the missing word
+            if '___' in matching.get('prompt', ''):
+                expected_complete = matching.get('filled_sentence', '')
+                if user_answer.strip() == expected_complete.strip():
+                    # User provided complete sentence - compare directly
+                    comparison_text = user_answer.strip()
+                    expected = expected_complete.strip()
+                else:
+                    # User provided just the missing word - build sentence and compare
+                    filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
+                    comparison_text = filled
+                    expected = expected_complete.strip()
+            else:
+                # Fallback for prompts without blanks
+                comparison_text = user_answer.strip()
+                expected = str(expected).strip()
         elif exercise_type == 'fill_multiple_blanks':
             # Handle array of answers
             if isinstance(user_answer, str):
-                user_answer = [user_answer]  # Convert single answer to array
-            filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
-            comparison_text = filled
+                # If user_answer is a string, try to parse it as comma-separated values
+                user_answer = [ans.strip().replace('"', '').replace("'", '') for ans in user_answer.split(',')]
+            
+            # Check if user provided complete sentence or individual answers
+            expected_complete = matching.get('filled_sentence', '')
+            if isinstance(user_answer, list) and len(user_answer) == 1:
+                # Single string provided, check if it's the complete sentence
+                if user_answer[0].strip() == expected_complete.strip():
+                    comparison_text = user_answer[0].strip()
+                    expected = expected_complete.strip()
+                else:
+                    # Build sentence from the single answer (likely incorrect)
+                    filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
+                    comparison_text = filled
+                    expected = expected_complete.strip()
+            else:
+                # Multiple answers provided - build the sentence
+                filled = build_filled_sentence(matching.get('prompt', ''), user_answer).strip()
+                comparison_text = filled
+                expected = expected_complete.strip()
         elif exercise_type == 'multiple_choice':
             # For multiple choice, compare the choice letter (A, B, C, D)
             comparison_text = user_answer.strip().upper()
@@ -219,6 +250,11 @@ manager.start_new_session()
 @app.route('/')
 def serve_index():
     return send_from_directory('web', 'dashboard.html')
+
+@app.route('/curriculum/<filename>')
+def serve_curriculum(filename):
+    """Serve curriculum files for frontend access"""
+    return send_from_directory('curriculum', filename)
 
 # -- Session Management --
 @app.route('/api/session/start', methods=['POST'])

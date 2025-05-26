@@ -4,5 +4,6 @@
   "openai_model": "gpt-4o",
   "local_model": "qwen3-30b-a3b",
   "local_host": "http://localhost",
-  "local_port": 1234
+  "local_port": 1234,
+  "debug_llm": true
 }

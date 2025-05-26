@@ -70,7 +70,7 @@ class BaseExerciseType(ABC):
             'vocab_familiar': config.vocab_familiar,
             'vocab_new': config.vocab_new,
             'recent_exercises': self._format_recent_exercises(config.recent_exercises)
-        } # type: ignore
+        }
     
     def _format_recent_exercises(self, recent_exercises: Optional[List[Dict]]) -> str:
         """Format recent exercises for prompt inclusion"""
@@ -426,6 +426,16 @@ Create a sentence building exercise where the user arranges Korean words/phrases
 - Test grammar points: {sections['grammar_points']}
 - Use {sections['formality']} formality level
 
+## CRITICAL: Word Piece Guidelines:
+- Include particles WITH the words they attach to (e.g. "책을" not "책", "친구의" not "친구")
+- Each word piece should be a complete unit that doesn't need additional particles
+- The sentence should be grammatically complete when pieces are arranged correctly
+- Don't separate particles from their host words
+
+## Vocabulary: Core: {sections['vocab_core']}, Familiar: {sections['vocab_familiar']}, New: {sections['vocab_new']}
+## Grammar Maturity: {sections['grammar_maturity']}
+## Recent History: {sections['recent_exercises']}
+
 ## Response Format:
 {{
   "exercise_type": "sentence_building",
@@ -436,7 +446,10 @@ Create a sentence building exercise where the user arranges Korean words/phrases
   "glossary": {{"term": "definition"}},
   "translated_sentence": "translation",
   "grammar_focus": ["grammar IDs"]
-}}"""
+}}
+
+Example of GOOD word pieces: ["저는", "친구의", "책을", "읽어", "주세요"]
+Example of BAD word pieces: ["저", "는", "친구", "의", "책", "을", "읽어", "주세요"]"""
     
     def get_response_schema(self) -> Dict[str, str]:
         return {
@@ -455,9 +468,21 @@ Create a sentence building exercise where the user arranges Korean words/phrases
         
         pieces = exercise.get('word_pieces', [])
         answer = exercise.get('expected_answer', [])
+        filled_sentence = exercise.get('filled_sentence', '')
         
         if set(pieces) != set(answer):
             errors.append("Expected answer must contain same words as word_pieces")
+        
+        # Check if the filled sentence can actually be formed by joining the pieces
+        if answer:
+            reconstructed = ' '.join(answer)
+            if reconstructed.replace(' ', '') != filled_sentence.replace(' ', ''):
+                errors.append("Filled sentence doesn't match joined word pieces")
+        
+        # Check for incomplete particles (common issue)
+        for piece in pieces:
+            if len(piece) == 1 and piece in ['을', '를', '이', '가', '은', '는', '의', '에', '에서', '도', '와', '과']:
+                errors.append(f"Standalone particle '{piece}' detected - particles should be attached to words")
         
         return len(errors) == 0, errors
 

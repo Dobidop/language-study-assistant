@@ -20,6 +20,89 @@
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+    
+    /* Grammar Focus Styling */
+    #grammarFocus {
+      position: relative;
+    }
+    
+    .grammar-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 10px;
+    }
+    
+    .grammar-header strong {
+      margin-right: 10px;
+    }
+    
+    .collapse-icon {
+      font-size: 12px;
+      color: #666;
+      transition: transform 0.2s ease;
+    }
+    
+    .collapse-icon.expanded {
+      transform: rotate(90deg);
+    }
+    
+    .grammar-content {
+      display: none;
+      margin-top: 10px;
+    }
+    
+    .grammar-content.expanded {
+      display: block;
+    }
+    
+    .grammar-point {
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+    }
+    
+    .grammar-description {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .grammar-reveal {
+      display: inline-block;
+      background: #e9ecef;
+      color: #495057;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid #ced4da;
+      transition: background-color 0.2s ease;
+    }
+    
+    .grammar-reveal:hover {
+      background: #dee2e6;
+    }
+    
+    .grammar-id {
+      display: none;
+      font-family: 'Courier New', monospace;
+      background: #fff3cd;
+      color: #856404;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+      font-size: 13px;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .grammar-id.revealed {
+      display: inline-block;
+    }
+
     #controls {
       margin-top: 20px;
       text-align: center;
@@ -141,6 +224,7 @@
     <option value="sentence_building">Sentence Building</option>
     <option value="translation">Translation</option>
   </select>
+  <button id="newExerciseBtn" style="display: none; margin-left: 10px;" onclick="fetchNewExercise()">🔄 New Exercise</button>
 </div>
 
 <div id="progress">Session not started</div>
@@ -185,8 +269,13 @@
 </div>
 
 <div id="grammarFocus" style="display: none;">
-  <strong>Focus:</strong> 
-  <span id="grammarList"></span>
+  <div class="grammar-header" onclick="toggleGrammarFocus()">
+    <strong>Grammar Focus:</strong>
+    <span class="collapse-icon" id="grammarCollapseIcon">▶</span>
+  </div>
+  <div class="grammar-content" id="grammarContent">
+    <div id="grammarPointsList"></div>
+  </div>
 </div>
 
 <div id="feedback" style="display: none;"></div>
@@ -204,11 +293,98 @@ let exercisesCompleted = 0;
 let currentExerciseType = 'fill_in_blank';
 let selectedChoice = null;
 let selectedWords = [];
+let grammarCurriculum = null;
+
+// Load grammar curriculum for descriptions
+async function loadGrammarCurriculum() {
+  try {
+    const response = await fetch('/curriculum/korean.json');
+    if (response.ok) {
+      grammarCurriculum = await response.json();
+    }
+  } catch (e) {
+    console.log('Could not load grammar curriculum:', e);
+  }
+}
+
+// Initialize grammar curriculum on page load
+loadGrammarCurriculum();
+
+function toggleGrammarFocus() {
+  const content = document.getElementById('grammarContent');
+  const icon = document.getElementById('grammarCollapseIcon');
+  
+  if (content.classList.contains('expanded')) {
+    content.classList.remove('expanded');
+    icon.classList.remove('expanded');
+  } else {
+    content.classList.add('expanded');
+    icon.classList.add('expanded');
+  }
+}
+
+function getGrammarDescription(grammarId) {
+  if (!grammarCurriculum || !grammarCurriculum.grammar_points) {
+    return null;
+  }
+  
+  const point = grammarCurriculum.grammar_points.find(p => p.id === grammarId);
+  return point ? point.description : null;
+}
+
+function revealGrammarId(grammarId, button) {
+  const idSpan = button.nextElementSibling;
+  if (idSpan && idSpan.classList.contains('grammar-id')) {
+    idSpan.classList.add('revealed');
+    button.style.display = 'none';
+  }
+}
+
+function displayGrammarPoints(grammarFocusList) {
+  const container = document.getElementById('grammarPointsList');
+  container.innerHTML = '';
+  
+  if (!grammarFocusList || grammarFocusList.length === 0) {
+    container.innerHTML = '<em>No grammar points specified</em>';
+    return;
+  }
+  
+  grammarFocusList.forEach(grammarId => {
+    const pointDiv = document.createElement('div');
+    pointDiv.className = 'grammar-point';
+    
+    const description = getGrammarDescription(grammarId);
+    
+    if (description) {
+      pointDiv.innerHTML = `
+        <div class="grammar-description">${description}</div>
+        <span class="grammar-reveal" onclick="revealGrammarId('${grammarId}', this)">Show Korean form</span>
+        <span class="grammar-id">${grammarId}</span>
+      `;
+    } else {
+      // Fallback if no description found
+      pointDiv.innerHTML = `
+        <div class="grammar-description">Grammar point: ${grammarId}</div>
+      `;
+    }
+    
+    container.appendChild(pointDiv);
+  });
+}
 
 document.getElementById("startSessionBtn").addEventListener("click", startSession);
 document.getElementById("endSessionBtn").addEventListener("click", endSession);
 document.getElementById("submitAnswerBtn").addEventListener("click", submitAnswer);
 document.getElementById("clearAnswerBtn").addEventListener("click", clearAnswer);
+
+// Add event listener for exercise type changes during session
+document.getElementById("exerciseType").addEventListener("change", function() {
+  if (sessionActive) {
+    console.log(`🔄 Exercise type changed to: ${this.value}`);
+    // You can optionally fetch a new exercise immediately when type changes
+    // fetchNewExercise();
+  }
+});
 
 // Handle Enter key for text inputs
 document.getElementById("userAnswer").addEventListener("keypress", function(event) {
@@ -237,6 +413,12 @@ async function startSession() {
     document.getElementById("startSessionBtn").disabled = true;
     document.getElementById("endSessionBtn").disabled = false;
     document.getElementById("exercise").style.display = "block";
+    
+    // Keep exercise type dropdown enabled during session and show new exercise button
+    document.getElementById("exerciseType").disabled = false;
+    document.getElementById("newExerciseBtn").style.display = "inline-block";
+    console.log(`🎬 Session started. Exercise type selector remains enabled.`);
+    
     fetchNewExercise();
   } else {
     alert("Failed to start session.");
@@ -257,6 +439,7 @@ async function endSession() {
     document.getElementById("endSessionBtn").disabled = true;
     document.getElementById("exercise").style.display = "none";
     document.getElementById("feedback").style.display = "none";
+    document.getElementById("newExerciseBtn").style.display = "none";
 
     alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
     window.location.href = "dashboard.html";
@@ -280,8 +463,13 @@ function showInputForExerciseType(exerciseType) {
   
   switch(exerciseType) {
     case 'fill_in_blank':
+      document.getElementById("textInput").style.display = "block";
+      document.getElementById("userAnswer").placeholder = "Type your answer...";
+      document.getElementById("userAnswer").focus();
+      break;
     case 'fill_multiple_blanks':
       document.getElementById("textInput").style.display = "block";
+      document.getElementById("userAnswer").placeholder = "Enter answers separated by commas (e.g. 의, 세요)";
       document.getElementById("userAnswer").focus();
       break;
     case 'translation':
@@ -304,6 +492,8 @@ async function fetchNewExercise() {
 
   const type = document.getElementById("exerciseType").value;
   currentExerciseType = type;
+  
+  console.log(`🎯 Fetching new exercise of type: ${type}`); // Debug log
 
   const response = await fetch("/api/exercise/new", {
     method: "POST",
@@ -315,6 +505,8 @@ async function fetchNewExercise() {
   if (data.exercise && !data.exercise.error) {
     exercisesCompleted++;
     const exercise = data.exercise;
+    
+    console.log(`✅ Received exercise:`, exercise.exercise_type); // Debug log
     
     document.getElementById("prompt").textContent = exercise.prompt;
     currentExerciseId = exercise.exercise_id;
@@ -354,10 +546,13 @@ async function fetchNewExercise() {
       document.getElementById("glossary").style.display = "none";
     }
 
-    // Show grammar focus
+    // Show grammar focus with descriptions
     if (exercise.grammar_focus) {
-      document.getElementById("grammarList").textContent = exercise.grammar_focus.join(", ");
+      displayGrammarPoints(exercise.grammar_focus);
       document.getElementById("grammarFocus").style.display = "block";
+      // Reset to collapsed state
+      document.getElementById("grammarContent").classList.remove("expanded");
+      document.getElementById("grammarCollapseIcon").classList.remove("expanded");
     } else {
       document.getElementById("grammarFocus").style.display = "none";
     }
@@ -464,8 +659,12 @@ async function submitAnswer() {
   // Get answer based on exercise type
   switch(currentExerciseType) {
     case 'fill_in_blank':
-    case 'fill_multiple_blanks':
       userAnswer = document.getElementById("userAnswer").value.trim();
+      break;
+    case 'fill_multiple_blanks':
+      // Split by comma and clean up the answers
+      const rawAnswer = document.getElementById("userAnswer").value.trim();
+      userAnswer = rawAnswer.split(',').map(answer => answer.trim().replace(/['"]/g, ''));
       break;
     case 'translation':
       userAnswer = document.getElementById("userAnswerTextarea").value.trim();
@@ -532,25 +731,6 @@ async function submitAnswer() {
     feedbackDiv.innerHTML = `<p>⚠️ Could not evaluate answer.</p>`;
   }
 }
-
-// Handle exercise type change
-document.getElementById("exerciseType").addEventListener("change", function() {
-  const newType = this.value;
-  
-  if (sessionActive) {
-    // If session is active, automatically fetch new exercise of the selected type
-    const confirmed = confirm(`Switch to ${newType} exercise? This will generate a new exercise.`);
-    if (confirmed) {
-      fetchNewExercise();
-    } else {
-      // Revert to current exercise type if user cancels
-      this.value = currentExerciseType;
-    }
-  } else {
-    // If no session active, just update the current type for next session
-    currentExerciseType = newType;
-  }
-});
 
 // Auto-start if URL parameters are present
 const params = new URLSearchParams(window.location.search);
