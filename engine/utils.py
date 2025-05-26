@@ -1,21 +1,63 @@
 import re
 import json
 from engine.llm_client import chat
-from engine.llm_client import chat
 
 def normalize_grammar_id(raw_id: str) -> str:
     """
-    Normalize grammar identifiers across the app for consistency.
+    Improved normalization that preserves Korean characters and creates consistent IDs.
+    
+    Rules:
+    1. Keep Korean characters intact
+    2. Normalize slash variants: / vs - vs nothing  
+    3. Remove extra spaces and punctuation
+    4. Use lowercase for English parts
+    5. Use consistent separators
+    
     Examples:
-        - "Object particle (를)" => "object_particle_를"
-        - "to_be_(이다)_polite_form" => "to_be_이다_polite_form"
+    '-아요/-어요' -> '-아요_어요'
+    '-아요-어요' -> '-아요_어요' 
+    '-아요어요' -> '-아요_어요'
+    '-이에요/예요' -> '-이에요_예요'
     """
-    s = raw_id.lower().strip()
-    s = re.sub(r"[^\w\s()\-]", "", s)      # Remove weird punctuation
-    s = re.sub(r"\s+", "_", s)             # Spaces -> underscores
-    s = s.replace("(", "_").replace(")", "")  # (X) => _X
-    s = re.sub(r"__+", "_", s)             # Collapse multiple underscores
-    return s.strip("_")
+    if not raw_id:
+        return raw_id
+        
+    s = raw_id.strip()
+    
+    # Handle Korean character separations (be more specific about boundaries)
+    s = re.sub(r'([가-힣])/([가-힣])', r'\1_\2', s)  # 아요/어요 -> 아요_어요
+    s = re.sub(r'([가-힣])-([가-힣])', r'\1_\2', s)   # 아요-어요 -> 아요_어요
+    
+    # Handle cases where Korean chars are mashed together (need manual rules)
+    korean_splits = {
+        '이에요예요': '이에요_예요',
+        '아요어요': '아요_어요', 
+        '은는': '은_는',
+        '이가': '이_가',
+        '을를': '을_를'
+    }
+    
+    for original, replacement in korean_splits.items():
+        s = s.replace(original, replacement)
+    
+    # Handle mixed patterns like "-아요/-어요" more aggressively
+    # Look for pattern: prefix + korean + separator + korean + suffix
+    s = re.sub(r'(-[가-힣]+)/(-[가-힣]+)', r'\1_\2', s)  # -아요/-어요 -> -아요_-어요
+    s = re.sub(r'(-[가-힣]+)-(-[가-힣]+)', r'\1_\2', s)   # -아요--어요 -> -아요_-어요
+    
+    # Clean up double prefixes: -아요_-어요 -> -아요_어요
+    s = re.sub(r'_-([가-힣])', r'_\1', s)
+    
+    # Normalize English parts to lowercase
+    s = re.sub(r'[A-Z]', lambda m: m.group().lower(), s)
+    
+    # Clean up punctuation but keep Korean chars and essential markers
+    s = re.sub(r'[^\w\s가-힣_\-]', '', s)  # Keep Korean, word chars, spaces, underscores, hyphens
+    s = re.sub(r'\s+', '_', s)  # Spaces to underscores
+    s = re.sub(r'_+', '_', s)   # Collapse multiple underscores
+    s = s.strip('_')            # Remove leading/trailing underscores
+    
+    return s
 
 
 def merge_error_categories(existing, new):
@@ -156,5 +198,5 @@ def sanitize_json_string(s):
         end = s.rfind("}")
         s = s[start:end+1]
 
-    s = s.replace('“', '"').replace('”', '"').replace("’", "'")
+    s = s.replace('"', '"').replace('"', '"').replace("'", "'")
     return s

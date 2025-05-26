@@ -5,3 +5,4 @@ sessions/
 api-key.env
 /engine/__pycache__
 last_response_debug.txt
+/backup
