@@ -70,6 +70,24 @@
       "lapses": 0,
       "srs_level": 2,
       "next_review_date": "2025-06-01"
+    },
+    "-에서": {
+      "exposure": 6,
+      "reps": 2,
+      "ease_factor": 2.5,
+      "interval": 6,
+      "lapses": 2,
+      "srs_level": 2,
+      "next_review_date": "2025-06-01"
+    },
+    "-을_를": {
+      "exposure": 4,
+      "reps": 4,
+      "ease_factor": 2.9000000000000004,
+      "interval": 45,
+      "lapses": 0,
+      "srs_level": 4,
+      "next_review_date": "2025-07-10"
     }
   },
   "vocab_summary": {}

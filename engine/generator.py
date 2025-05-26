@@ -9,8 +9,22 @@ from datetime import datetime
 # Paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 VOCAB_DATA_PATH = os.path.join(BASE_DIR, 'vocab_data.json')
+
+# Load vocabulary data once and cache it
 with open(VOCAB_DATA_PATH, 'r', encoding='utf-8') as f:
     VOCAB_DATA = json.load(f)
+
+# Ensure VOCAB_DATA is in dictionary format
+if isinstance(VOCAB_DATA, list):
+    print("⚠️  Converting vocabulary data from array to dictionary format...")
+    vocab_dict = {}
+    for entry in VOCAB_DATA:
+        if isinstance(entry, dict) and 'vocab' in entry:
+            vocab_word = entry['vocab']
+            vocab_info = {k: v for k, v in entry.items() if k != 'vocab'}
+            vocab_dict[vocab_word] = vocab_info
+    VOCAB_DATA = vocab_dict
+    print(f"✅ Converted {len(VOCAB_DATA)} vocabulary entries to dictionary format")
 
 # Helper loaders
 
@@ -21,15 +35,35 @@ def load_user_profile(path: str = None) -> dict:
 
 
 def load_curriculum(path: str = None) -> dict:
-    path = path or os.path.join(BASE_DIR, 'korean.json')
+    path = path or os.path.join(BASE_DIR, 'curriculum', 'korean.json')
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
 def load_vocab_data(path: str = None) -> dict:
+    """
+    Load vocabulary data and ensure it's in dictionary format.
+    
+    Expected format: {"word": {"translation": "...", "frequency_rank": 123, ...}}
+    """
     path = path or VOCAB_DATA_PATH
     with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        vocab_data = json.load(f)
+    
+    # Ensure dictionary format (with fallback for legacy array format)
+    if isinstance(vocab_data, list):
+        print("⚠️  Converting legacy array format to dictionary format...")
+        vocab_dict = {}
+        for entry in vocab_data:
+            if isinstance(entry, dict) and 'vocab' in entry:
+                vocab_word = entry['vocab']
+                vocab_info = {k: v for k, v in entry.items() if k != 'vocab'}
+                vocab_dict[vocab_word] = vocab_info
+        return vocab_dict
+    elif isinstance(vocab_data, dict):
+        return vocab_data
+    else:
+        raise ValueError(f"Invalid vocab_data format: {type(vocab_data)}")
 
 # Core generate_exercise now delegates prompt building
 
@@ -37,7 +71,7 @@ def generate_exercise(user_profile: dict,
                       grammar_targets: list,
                       recent_exercises: list = None,
                       exercise_type: str = "fill_in_blank") -> dict:
-    # 1) Compute the “Grammar Maturity” section
+    # 1) Compute the "Grammar Maturity" section
     grammar_summary = user_profile.get('grammar_summary', {})
     grammar_maturity_section = "\n".join(
         f"- {normalize_grammar_id(gid)}: level {info.get('srs_level',0)}, next review {info.get('next_review_date','N/A')}"

@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from engine.curriculum import load_curriculum# as load_curriculum_file
+from engine.curriculum import load_curriculum
 from engine.utils import normalize_grammar_id
 
 # Use pathlib for file paths
@@ -14,16 +14,30 @@ def load_user_profile(path: str = None) -> dict:
         return json.load(f)
 
 
-""" def load_curriculum(path: str = None) -> dict:
-    path = path or os.path.join(BASE_DIR, 'curriculum.json')
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f) """
-
-
 def load_vocab_data(path: str = None) -> dict:
+    """
+    Load vocabulary data and ensure it's in dictionary format.
+    
+    Expected format: {"word": {"translation": "...", "frequency_rank": 123, ...}}
+    """
     path = path or os.path.join(BASE_DIR, 'vocab_data.json')
     with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        vocab_data = json.load(f)
+    
+    # Ensure dictionary format (with fallback for legacy array format)
+    if isinstance(vocab_data, list):
+        print("⚠️  Converting legacy array format to dictionary format...")
+        vocab_dict = {}
+        for entry in vocab_data:
+            if isinstance(entry, dict) and 'vocab' in entry:
+                vocab_word = entry['vocab']
+                vocab_info = {k: v for k, v in entry.items() if k != 'vocab'}
+                vocab_dict[vocab_word] = vocab_info
+        return vocab_dict
+    elif isinstance(vocab_data, dict):
+        return vocab_data
+    else:
+        raise ValueError(f"Invalid vocab_data format: {type(vocab_data)}")
 
 
 def select_review_and_new_items(
@@ -76,13 +90,15 @@ def select_review_and_new_items(
     new_grammar = [pt['id'] for pt in unseen[:new_grammar_per_session]]
 
     # 4. New vocab: from vocab_data by frequency, not yet in profile
-    all_words = list(vocab_data.keys()) if isinstance(vocab_data, dict) else [w['vocab'] for w in vocab_data]
+    # SIMPLIFIED: vocab_data is now always a dictionary
+    all_words = list(vocab_data.keys())
     seen_vocab = set(profile.get('vocab_summary', {}).keys())
     unseen_vocab = [w for w in all_words if w not in seen_vocab]
+    
     # Sort unseen_vocab by frequency_rank if available
-    def freq_rank(w):
-        v = vocab_data[w] if isinstance(vocab_data, dict) else next((x for x in vocab_data if x['vocab']==w), {})
-        return v.get('frequency_rank', float('inf'))
+    def freq_rank(word):
+        return vocab_data[word].get('frequency_rank', float('inf'))
+    
     unseen_vocab.sort(key=freq_rank)
     new_vocab = unseen_vocab[:new_vocab_per_session]
 
