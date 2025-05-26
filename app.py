@@ -68,7 +68,7 @@ class ExerciseSessionManager:
             available_info = get_exercise_type_info()
             return {
                 "error": f"Invalid exercise type: {exercise_type}",
-                "available_types": available_info['available_types'] + available_info['legacy_types']
+                "available_types": available_info['available_types']  # No more legacy_types
             }
         
         try:
@@ -111,12 +111,8 @@ class ExerciseSessionManager:
                     'word_pieces': exercise.get('word_pieces', []),
                     'instruction': 'Arrange these words in the correct order'
                 })
-            elif exercise_type in ['fill_in_blank', 'fill_multiple_blanks']:
-                response.update({
-                    'expected_answer': exercise.get('expected_answer'),
-                    'filled_sentence': exercise.get('filled_sentence')
-                })
-            elif exercise_type == 'translation':
+            elif exercise_type in ['fill_in_blank', 'fill_multiple_blanks', 'translation']:
+                # Translation now uses the same structure as other exercises
                 response.update({
                     'expected_answer': exercise.get('expected_answer'),
                     'filled_sentence': exercise.get('filled_sentence')
@@ -163,8 +159,12 @@ class ExerciseSessionManager:
             comparison_text = ' '.join(user_answer) if isinstance(user_answer, list) else user_answer
             expected_order = matching.get('expected_answer', [])
             expected = ' '.join(expected_order) if isinstance(expected_order, list) else str(expected_order)
+        elif exercise_type == 'translation':
+            # Translation exercises now handled the same as other text-based exercises
+            comparison_text = user_answer.strip()
+            expected = str(expected).strip()
         else:
-            # Default case (translation, etc.)
+            # Default case for any other exercise types
             comparison_text = user_answer.strip()
             expected = str(expected).strip()
 

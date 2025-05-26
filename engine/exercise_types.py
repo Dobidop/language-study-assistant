@@ -70,7 +70,7 @@ class BaseExerciseType(ABC):
             'vocab_familiar': config.vocab_familiar,
             'vocab_new': config.vocab_new,
             'recent_exercises': self._format_recent_exercises(config.recent_exercises)
-        }
+        } # type: ignore
     
     def _format_recent_exercises(self, recent_exercises: Optional[List[Dict]]) -> str:
         """Format recent exercises for prompt inclusion"""
@@ -462,6 +462,102 @@ Create a sentence building exercise where the user arranges Korean words/phrases
         return len(errors) == 0, errors
 
 
+class TranslationExercise(BaseExerciseType):
+    """Translation exercise from instruction language to target language"""
+    
+    def __init__(self):
+        super().__init__()
+        self.difficulty = "medium"
+    
+    def generate_prompt(self, config: ExerciseConfig) -> str:
+        sections = self.get_common_prompt_sections(config)
+        
+        return f"""/no_think
+You are a {sections['target_lang']} language tutor assistant. Create a translation exercise.
+
+## User Profile:
+- Proficiency: {sections['level']}
+- Native language: {sections['native_lang']}
+- Target language: {sections['target_lang']}
+- Instructions in: {sections['instruction_lang']}
+- Formality level: {sections['formality']} (VERY IMPORTANT!)
+
+## Exercise Requirements:
+- Exercise type: "translation"
+- Provide a sentence in {sections['instruction_lang']} for the user to translate into {sections['target_lang']}
+- Target these grammar points: {sections['grammar_points']}
+- Use {sections['formality']} formality level in the expected translation
+- Sentence should be at {sections['level']} difficulty level
+
+## Vocabulary Guidelines:
+- Core vocabulary (use freely): {sections['vocab_core']}
+- Familiar vocabulary (use some): {sections['vocab_familiar']}
+- New vocabulary (use 1-2 max): {sections['vocab_new']}
+
+## Grammar Maturity:
+{sections['grammar_maturity']}
+
+## Recent Session History:
+{sections['recent_exercises']}
+Avoid repeating similar patterns.
+
+## Response Format:
+Return ONLY a valid JSON object:
+{{
+  "exercise_type": "translation",
+  "prompt": "{sections['instruction_lang']} sentence to translate",
+  "expected_answer": "correct {sections['target_lang']} translation",
+  "filled_sentence": "same as expected_answer",
+  "glossary": {{"term": "definition in {sections['instruction_lang']}"}},
+  "translated_sentence": "same as prompt",
+  "grammar_focus": ["target grammar IDs"]
+}}
+
+Generate exactly one translation exercise that effectively tests the target grammar points."""
+    
+    def get_response_schema(self) -> Dict[str, str]:
+        return {
+            "exercise_type": "string",
+            "prompt": "string (sentence to translate)",
+            "expected_answer": "string (correct translation)",
+            "filled_sentence": "string (same as expected_answer)",
+            "glossary": "object",
+            "translated_sentence": "string (same as prompt)",
+            "grammar_focus": "array"
+        }
+    
+    def validate_exercise(self, exercise: Dict[str, Any]) -> tuple[bool, List[str]]:
+        errors = []
+        
+        # Check required fields
+        required_fields = ['prompt', 'expected_answer', 'filled_sentence', 'glossary', 'grammar_focus', 'translated_sentence']
+        for field in required_fields:
+            if field not in exercise:
+                errors.append(f"Missing required field: {field}")
+        
+        if errors:
+            return False, errors
+        
+        # For translation exercises, filled_sentence should be same as expected_answer
+        expected = exercise.get('expected_answer', '').strip()
+        filled = exercise.get('filled_sentence', '').strip()
+        if expected != filled:
+            errors.append("For translation exercises, filled_sentence should match expected_answer")
+        
+        # Translated_sentence should be same as prompt (since it's already in instruction language)
+        prompt = exercise.get('prompt', '').strip()
+        translated = exercise.get('translated_sentence', '').strip()
+        if prompt != translated:
+            errors.append("For translation exercises, translated_sentence should match prompt")
+        
+        # Check that prompt and expected_answer are in different languages
+        # This is a basic check - could be more sophisticated
+        if exercise.get('prompt', '') == exercise.get('expected_answer', ''):
+            errors.append("Prompt and expected answer appear to be identical - check language difference")
+        
+        return len(errors) == 0, errors
+
+
 class ExerciseTypeFactory:
     """Factory for creating exercise type instances"""
     
@@ -471,7 +567,7 @@ class ExerciseTypeFactory:
         'multiple_choice': MultipleChoiceExercise,
         'error_correction': ErrorCorrectionExercise,
         'sentence_building': SentenceBuildingExercise,
-        'translation': None  # Keep existing translation logic for now
+        'translation': TranslationExercise,  # Now using modular system
     }
     
     @classmethod

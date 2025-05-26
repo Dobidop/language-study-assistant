@@ -28,19 +28,19 @@ if isinstance(VOCAB_DATA, list):
 
 # Helper loaders
 
-def load_user_profile(path: str = None) -> dict:
+def load_user_profile(path: str = None) -> dict: # type: ignore
     path = path or os.path.join(BASE_DIR, 'user_profile.json')
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def load_curriculum(path: str = None) -> dict:
+def load_curriculum(path: str = None) -> dict: # type: ignore
     path = path or os.path.join(BASE_DIR, 'curriculum', 'korean.json')
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def load_vocab_data(path: str = None) -> dict:
+def load_vocab_data(path: str = None) -> dict: # type: ignore
     """
     Load vocabulary data and ensure it's in dictionary format.
     """
@@ -64,63 +64,12 @@ def load_vocab_data(path: str = None) -> dict:
         raise ValueError(f"Invalid vocab_data format: {type(vocab_data)}")
 
 
-def generate_exercise_legacy(user_profile: dict,
-                           grammar_targets: list,
-                           recent_exercises: list = None,
-                           exercise_type: str = "translation") -> dict:
-    """
-    Legacy exercise generation for translation type (until migrated to new system).
-    """
-    target_lang = user_profile.get('target_language', 'Korean')
-    native_lang = user_profile.get('native_language', 'English')
-    instruction_lang = user_profile.get('instruction_language', 'English')
-    level = user_profile.get('level', 'beginner')
-    formality = user_profile.get('learning_preferences', {}).get('preferred_formality', 'polite')
-    
-    grammar_points_formatted = "\n" + "\n".join(f"- {g}" for g in grammar_targets)
-    
-    prompt = f"""/no_think
-You are a {target_lang} language tutor assistant. Create a translation exercise.
-
-## User Profile:
-- Proficiency: {level}
-- Native language: {native_lang}
-- Target language: {target_lang}
-- Instructions in: {instruction_lang}
-- Formality level: {formality} (VERY IMPORTANT!)
-
-## Exercise Requirements:
-- Exercise type: "translation"
-- Provide a sentence in {instruction_lang} to translate to {target_lang}
-- Target these grammar points: {grammar_points_formatted}
-- Use {formality} formality level in the translation
-
-## Response Format:
-{{
-  "exercise_type": "translation",
-  "prompt": "English sentence to translate",
-  "expected_answer": "correct Korean translation",
-  "filled_sentence": "same as expected_answer",
-  "glossary": {{"term": "definition"}},
-  "translated_sentence": "same as prompt",
-  "grammar_focus": ["grammar IDs"]
-}}"""
-
-    response_text = chat([
-        {"role": "system", "content": f"You are a helpful {target_lang} tutor assistant."},
-        {"role": "user", "content": prompt}
-    ], temperature=0.4)
-
-    safe = sanitize_json_string(response_text)
-    return json.loads(safe)
-
-
 def generate_exercise(user_profile: dict,
                       grammar_targets: list,
-                      recent_exercises: list = None,
+                      recent_exercises: list = None, # type: ignore
                       exercise_type: str = "fill_in_blank") -> dict:
     """
-    Generate an exercise using the new modular system or legacy fallback.
+    Generate an exercise using the new modular system.
     """
     print(f"🎯 Generating {exercise_type} exercise...")
     
@@ -202,11 +151,6 @@ def generate_exercise(user_profile: dict,
                 "error": "Failed to parse LLM response"
             }
     
-    elif exercise_type == "translation":
-        # Use legacy system for translation
-        print(f"⚠️  Using legacy system for {exercise_type}")
-        return generate_exercise_legacy(user_profile, grammar_targets, recent_exercises, exercise_type)
-    
     else:
         # Unknown exercise type
         print(f"❌ Unknown exercise type: {exercise_type}")
@@ -215,8 +159,8 @@ def generate_exercise(user_profile: dict,
 
 
 def generate_exercise_auto(
-    profile_path: str = None,
-    recent_exercises: list = None,
+    profile_path: str = None, # type: ignore
+    recent_exercises: list = None, # type: ignore
     exercise_type: str = "fill_in_blank"
 ) -> dict:
     """
@@ -241,7 +185,7 @@ def get_exercise_type_info() -> dict:
     return {
         'available_types': ExerciseTypeFactory.get_available_types(),
         'type_info': ExerciseTypeFactory.get_type_info(),
-        'legacy_types': ['translation']
+        'legacy_types': []  # No more legacy types - all migrated to modular system
     }
 
 
@@ -250,8 +194,7 @@ def validate_exercise_type(exercise_type: str) -> bool:
     Check if an exercise type is valid/supported.
     """
     available = ExerciseTypeFactory.get_available_types()
-    legacy = ['translation']
-    return exercise_type in available or exercise_type in legacy
+    return exercise_type in available
 
 
 # Example CLI usage
@@ -259,7 +202,7 @@ if __name__ == '__main__':
     print("🧪 Testing exercise generation...")
     
     # Test each exercise type
-    test_types = ['fill_in_blank', 'multiple_choice', 'fill_multiple_blanks', 'error_correction', 'sentence_building']
+    test_types = ['fill_in_blank', 'multiple_choice', 'fill_multiple_blanks', 'error_correction', 'sentence_building', 'translation']
     
     for ex_type in test_types:
         try:
@@ -269,4 +212,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"❌ {ex_type}: {e}")
     
-    # print(f"\n📋 Available exercise types: {get_exercise_type_info()}"))
+    print(f"\n📋 Available exercise types: {get_exercise_type_info()}")
