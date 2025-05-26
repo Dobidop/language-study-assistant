@@ -178,9 +178,11 @@ def generate_exercise(user_profile: dict,
         # Use new modular system
         print(f"✅ Using new modular system for {exercise_type}")
         
-        # Split vocab into categories by SRS level
+        # Split vocab into categories by SRS level and add new words from vocab_data
         vocab_summary = user_profile.get('vocab_summary', {})
         vocab_new, vocab_familiar, vocab_core = [], [], []
+        
+        # Categorize known vocabulary by SRS level
         for w, info in vocab_summary.items():
             reps = info.get('reps', 0)
             if reps <= 1:
@@ -189,6 +191,32 @@ def generate_exercise(user_profile: dict,
                 vocab_familiar.append(w)
             else:
                 vocab_core.append(w)
+        
+        # Add new vocabulary from vocab_data (words not yet learned)
+        known_words = set(vocab_summary.keys())
+        available_new_words = []
+        
+        # Get words from vocab_data that aren't in user's vocabulary yet
+        for word in VOCAB_DATA.keys():
+            if word not in known_words:
+                available_new_words.append(word)
+        
+        # Sort by frequency rank if available, take top candidates for new words
+        available_new_words.sort(key=lambda w: VOCAB_DATA[w].get('frequency_rank', float('inf')))
+        vocab_new.extend(available_new_words[:10])  # Add top 10 new words as candidates
+        
+        # Ensure we have some core vocabulary if user is new
+        if not vocab_core and not vocab_familiar:
+            # For brand new users, add some high-frequency words as familiar
+            basic_words = available_new_words[:5]  # Take 5 most frequent words
+            vocab_familiar.extend(basic_words)
+            print(f"🔰 New user detected - added {len(basic_words)} basic words to familiar vocabulary")
+        
+        print(f"📚 Vocabulary counts: Core={len(vocab_core)}, Familiar={len(vocab_familiar)}, New={len(vocab_new)}")
+        if recent_exercises:
+            print(f"📜 Recent exercises count: {len(recent_exercises)}")
+        else:
+            print(f"📜 No recent exercises available")
         
         # Compute grammar maturity section
         grammar_summary = user_profile.get('grammar_summary', {})
@@ -219,6 +247,8 @@ def generate_exercise(user_profile: dict,
         print(f'\033[38;2;100;149;237m  Schema Fields:\033[0m {", ".join(exercise_data["schema"].keys())}')
         print(f'\033[38;2;100;149;237m  Prompt Length:\033[0m {len(exercise_data["prompt"])} characters')
         print(f'\033[38;2;100;149;237m  Grammar Targets:\033[0m {", ".join(config.grammar_targets)}')
+        print(f'\033[38;2;100;149;237m  Vocab Categories:\033[0m Core({len(vocab_core)}), Familiar({len(vocab_familiar)}), New({len(vocab_new)})')
+        print(f'\033[38;2;100;149;237m  Recent Exercises:\033[0m {len(recent_exercises or [])}')
         
         # Show prompt preview (first 200 chars)
         prompt_preview = exercise_data["prompt"][:200].replace('\n', ' ')
@@ -339,12 +369,22 @@ def generate_exercise_auto(
     """
     profile = load_user_profile(profile_path)
     selections = select_review_and_new_items(profile_path=profile_path)
+    
+    # Debug the selection process
+    print(f"📋 Grammar Selection Debug:")
+    print(f"  Review grammar: {selections['review_grammar']}")
+    print(f"  New grammar: {selections['new_grammar']}")
+    print(f"  Review vocab: {len(selections['review_vocab'])} words")
+    print(f"  New vocab: {len(selections['new_vocab'])} words")
+    
     grammar_targets = [normalize_grammar_id(g) for g in
                        selections['review_grammar'] + selections['new_grammar']]
     
     if not grammar_targets:
         print("⚠️  No grammar targets found, using default beginner grammar")
         grammar_targets = ['-이에요_예요', '-아요_어요']  # Default beginner grammar
+    
+    print(f"🎯 Final grammar targets: {grammar_targets}")
     
     return generate_exercise(profile, grammar_targets, recent_exercises, exercise_type)
 

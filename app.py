@@ -74,7 +74,7 @@ class ExerciseSessionManager:
         try:
             exercise = generate_exercise(
                 profile_path="user_profile.json",
-                recent_exercises=self.recent_exercises,
+                recent_exercises=self.recent_exercises,  # Pass the actual recent exercises
                 exercise_type=exercise_type
             )
 
@@ -240,6 +240,12 @@ class ExerciseSessionManager:
         # Update profile and recent exercises
         update_user_profile(self.profile, [feedback])
         self.recent_exercises.append(history_entry)
+        
+        # Keep only last 10 exercises for prompt context
+        if len(self.recent_exercises) > 10:
+            self.recent_exercises = self.recent_exercises[-10:]
+            
+        print(f"📝 Added to recent exercises. Total: {len(self.recent_exercises)}")  # Debug
         
         return feedback
 

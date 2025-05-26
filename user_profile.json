@@ -115,7 +115,16 @@
       "lapses": 2,
       "srs_level": 0,
       "next_review_date": "2025-05-27"
-    }
+    },
+	"-의": {
+	  "exposure": 10,
+	  "reps": 3,
+	  "ease_factor": 2.5,
+	  "interval": 15,
+	  "lapses": 0,
+	  "srs_level": 3,
+	  "next_review_date": "2025-06-01"
+	}
   },
   "vocab_summary": {}
 }

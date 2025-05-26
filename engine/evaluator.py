@@ -17,8 +17,7 @@ Expected answer: {expected_answer}
 User answer: {user_answer}
 
 Be sure to take into account the potential prompt formatting issue when evaluating the result.
-If this seems to be the case, then mark the question as correct ("is_correct": true)
-Only mark a question as correct if th spacing, if you notice it, is incorrect.
+If this seems to be the case, then mark the question as correct ("is_correct": true). Though only mark a question as correct if strictly the spacing, if you notice it, is incorrect.
 
 ## Instructions:
 Return your evaluation in the following JSON format:
