@@ -46,7 +46,7 @@ They want instructions and explanations in {instruction_lang}, but the exercise 
     
     # Tailored constraints
     if forced_exercise_type == "fill_in_blank":
-        prompt += """
+        prompt += f"""
         - Prompt must contain one blank marked as ___. 
         - It is very important that the blank part actually would be completed by the missing word(s) or particles! Be sure that the blank, "___", serves a purpose!
         - expected_answer must be a string (for one blank).
@@ -67,8 +67,6 @@ They want instructions and explanations in {instruction_lang}, but the exercise 
 
     prompt += f"""
     - Do NOT explain or comment on the exercise.
-    - The exercise should preferably (but not necessarily) match this type: {user_profile['learning_preferences']['preferred_exercise_types'][0]}
-
 
     ## Exercise specification:
     - It must use these grammar points as ther blank: {grammar_points_formatted}
@@ -76,13 +74,17 @@ They want instructions and explanations in {instruction_lang}, but the exercise 
     - The prompt must be written in {task_lang}, the glossary in {instruction_lang}, and the answer in {target_lang}.
     - Provide ALL words for the glossary in basic dictionary(this is a must!) form
     - The generated sentence MUST make sense. It cannot be something like "I drink an apple"
-    - If choosing the multiple "fill_in_blank" or "multiple_choice", then the specific blanked item/choice MUST be one of the grammar focus words and/or particles!
-    - Be absolutely certain that the blank is actually replacing a word, and that it makes sense to insert the 'expected_answer' in that spot. 
+    - You MUST this language formality level: {formality_instruction}, This is very important!!!!"""
+    if forced_exercise_type == "fill_in_blank":
+        prompt += f"""
+        - Be absolutely certain that the blank is actually replacing a word, and that it makes sense to insert the 'expected_answer' in that spot. 
         - For example:
             This is incorrect: 저는 아침에 커피를 ___ 마셔요. (expected_answer = 마셔요)
             This is correct: 저는 아침에 커피를 ___. (expected_answer = 마셔요)
-    - You MUST this language formality level: {formality_instruction}, This is very important!!!!
+        - For the exercise types multiple "fill_in_blank" or "multiple_choice", then the specific blanked item/choice MUST be one of the grammar focus words and/or particles!
+        """
 
+    prompt += f"""  
     ## Grammar Maturity:
     {grammar_maturity_section}
     - never use possessive particle "내/의", as the grammar focus.

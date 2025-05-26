@@ -251,8 +251,12 @@ async function submitAnswer() {
 
   if (data.feedback) {
     if (data.feedback.is_correct) {
-      feedbackDiv.innerHTML = `<p class="correct">✅ Correct!</p>`;
-      setTimeout(fetchNewExercise, 1500); // Move to next
+      feedbackDiv.innerHTML = `
+        <p class="correct">✅ Correct!</p>
+        <p><strong>Explanation:</strong> ${data.feedback.explanation_summary}</p>
+        <button id="nextExerciseBtn">➡️ Next Exercise</button>
+      `;
+      document.getElementById("nextExerciseBtn").addEventListener("click", fetchNewExercise);
     } else {
       feedbackDiv.innerHTML = `
         <p class="incorrect">❌ Not quite right.</p>
@@ -261,8 +265,11 @@ async function submitAnswer() {
         <ul>
           ${data.feedback.error_analysis.map(err => `<li>${err}</li>`).join("")}
         </ul>
+        <button id="nextExerciseBtn">➡️ Next Exercise</button>
       `;
+      document.getElementById("nextExerciseBtn").addEventListener("click", fetchNewExercise);
     }
+
   } else {
     feedbackDiv.innerHTML = `<p class="incorrect">⚠️ Could not evaluate answer.</p>`;
   }
