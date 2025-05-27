@@ -505,6 +505,7 @@ async function fetchNewExercise() {
   if (data.exercise && !data.exercise.error) {
     exercisesCompleted++;
     const exercise = data.exercise;
+    currentExerciseData = exercise; // Store for later reference
     
     console.log(`✅ Received exercise:`, exercise.exercise_type); // Debug log
     
@@ -672,6 +673,10 @@ async function submitAnswer() {
     case 'multiple_choice':
     case 'error_correction':
       userAnswer = selectedChoice;
+      if (!userAnswer) {
+        alert("Please select an answer before submitting.");
+        return;
+      }
       break;
     case 'sentence_building':
       userAnswer = selectedWords;
@@ -696,16 +701,48 @@ async function submitAnswer() {
   const feedbackDiv = document.getElementById("feedback");
   feedbackDiv.style.display = "block";
 
-  if (data.feedback) {
+if (data.feedback) {
     if (data.feedback.is_correct) {
       feedbackDiv.className = "correct";
+      
+      // For error correction, show which choice was correct
+      let correctChoiceInfo = "";
+      if (currentExerciseType === 'error_correction') {
+        const correctLetter = data.feedback.corrected_answer;
+        correctChoiceInfo = `<p><strong>Correct choice:</strong> ${correctLetter}</p>`;
+      }
+      
       feedbackDiv.innerHTML = `
         <p>✅ Correct!</p>
+        ${correctChoiceInfo}
         <p><strong>Explanation:</strong> ${data.feedback.explanation_summary}</p>
         <button id="nextExerciseBtn">➡️ Next Exercise</button>
       `;
     } else {
       feedbackDiv.className = "incorrect";
+      
+      // For error correction, show the correct choice and explain errors in other choices
+      let correctChoiceInfo = "";
+      let errorBreakdown = "";
+      
+      if (currentExerciseType === 'error_correction') {
+        const correctLetter = data.feedback.corrected_answer;
+        correctChoiceInfo = `<p><strong>Correct choice:</strong> ${correctLetter}</p>`;
+        
+        // If the exercise has error_explanations, show them
+        const exercise = getCurrentExercise(); // You'll need to store current exercise data
+        if (exercise && exercise.error_explanations) {
+          errorBreakdown = `
+            <p><strong>Why other choices are wrong:</strong></p>
+            <ul>
+              ${Object.entries(exercise.error_explanations).map(([letter, explanation]) => 
+                `<li><strong>${letter}:</strong> ${explanation}</li>`
+              ).join('')}
+            </ul>
+          `;
+        }
+      }
+      
       let errorAnalysis = "";
       if (data.feedback.error_analysis && data.feedback.error_analysis.length > 0) {
         errorAnalysis = `
@@ -718,7 +755,8 @@ async function submitAnswer() {
       
       feedbackDiv.innerHTML = `
         <p>❌ Not quite right.</p>
-        <p><strong>Correct Answer:</strong> ${data.feedback.corrected_answer}</p>
+        ${correctChoiceInfo}
+        ${errorBreakdown}
         ${errorAnalysis}
         <p><strong>Explanation:</strong> ${data.feedback.explanation_summary || 'Review the grammar points above.'}</p>
         <button id="nextExerciseBtn">➡️ Next Exercise</button>
@@ -730,6 +768,13 @@ async function submitAnswer() {
     feedbackDiv.className = "incorrect";
     feedbackDiv.innerHTML = `<p>⚠️ Could not evaluate answer.</p>`;
   }
+}
+
+// Helper function to get current exercise data (you'll need to store this when fetching)
+let currentExerciseData = null;
+
+function getCurrentExercise() {
+  return currentExerciseData;
 }
 
 // Auto-start if URL parameters are present

@@ -182,7 +182,20 @@ class ExerciseSessionManager:
         elif exercise_type == 'error_correction':
             # Compare choice letter for error correction
             comparison_text = user_answer.strip().upper()
-            expected = matching.get('correct_answer', '')
+            expected = matching.get('correct_answer', '').strip().upper()
+            
+            # Additional validation - make sure the expected answer is a valid choice
+            if expected not in ['A', 'B', 'C', 'D']:
+                print(f"⚠️ Invalid correct_answer in exercise: {expected}")
+                expected = 'A'  # Fallback, though this shouldn't happen with validation
+            
+            # For error correction, we can also provide the actual sentence text in feedback
+            # to make it clearer what the correct answer was
+            sentences = matching.get('sentences', {})
+            expected_sentence = sentences.get(expected, '') if expected in sentences else ''
+            
+            # Store the sentence text as well for more detailed feedback
+            matching['expected_sentence_text'] = expected_sentence
         elif exercise_type == 'sentence_building':
             # Compare ordered word list
             if isinstance(user_answer, str):

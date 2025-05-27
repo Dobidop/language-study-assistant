@@ -360,35 +360,66 @@ You are a {sections['target_lang']} language tutor assistant. Create an error co
 - Others should have subtle grammar mistakes related to: {sections['grammar_points']}
 - Mistakes should be realistic learner errors
 - Use {sections['formality']} formality level
+- None of the sentences in this set should be identical! They MUST be different from eachother.
+- IMPORTANT: The correct sentence can be in ANY position (A, B, C, or D) - don't always make it B!
+
+## Grammar Maturity:
+{sections['grammar_maturity']}
+
+## Vocabulary Guidelines:
+- Core vocabulary (use freely): {sections['vocab_core']}
+- Familiar vocabulary (use some): {sections['vocab_familiar']}
+- New vocabulary (use 1-2 max): {sections['vocab_new']}
+
+## Recent Session History:
+{sections['recent_exercises']}
+Avoid repeating patterns from the session history. None of the new sentences can be identical to the sentences form the recent session history.
 
 ## Response Format:
+Return ONLY a valid JSON object:
 {{
   "exercise_type": "error_correction",
   "prompt": "Choose the grammatically correct sentence:",
   "sentences": {{
-    "A": "sentence with error",
-    "B": "correct sentence",
-    "C": "sentence with error", 
-    "D": "sentence with error"
+    "A": "sentence (could be correct or have error)",
+    "B": "sentence (could be correct or have error)",
+    "C": "sentence (could be correct or have error)", 
+    "D": "sentence (could be correct or have error)"
   }},
-  "correct_answer": "B",
-  "expected_answer": "the correct sentence text",
+  "correct_answer": "A" or "B" or "C" or "D" (whichever position has the correct sentence),
+  "expected_answer": "the actual text of the correct sentence",
   "error_explanations": {{
-    "A": "explanation of error",
-    "C": "explanation of error",
-    "D": "explanation of error"
+    "X": "explanation of error in sentence X (only include the incorrect ones)"
   }},
-  "glossary": {{"term": "definition"}},
-  "translated_sentence": "correct sentence translation",
-  "grammar_focus": ["grammar IDs"]
-}}"""
+  "glossary": {{"term": "definition in {sections['instruction_lang']}"}},
+  "translated_sentence": "correct sentence translated to {sections['instruction_lang']}",
+  "grammar_focus": ["grammar IDs tested"]
+}}
+
+Example structure where C is correct:
+{{
+  "sentences": {{
+    "A": "저는 학교를 갔어요.",
+    "B": "저는 학교에 가요.",  
+    "C": "저는 학교에 갔어요.",
+    "D": "저는 학교을 갔어요."
+  }},
+  "correct_answer": "C",
+  "error_explanations": {{
+    "A": "Missing location particle - should be '에'",
+    "B": "Wrong tense - should be past tense '갔어요'",
+    "D": "Wrong object particle - should be '에' not '을'"
+  }}
+}}
+
+Make sure the correct answer position varies across different exercises!"""
     
     def get_response_schema(self) -> Dict[str, str]:
         return {
             "exercise_type": "string",
             "prompt": "string",
             "sentences": "object with A,B,C,D keys",
-            "correct_answer": "string",
+            "correct_answer": "string (A,B,C,or D)",
             "expected_answer": "string",
             "error_explanations": "object",
             "glossary": "object", 
@@ -399,9 +430,42 @@ You are a {sections['target_lang']} language tutor assistant. Create an error co
     def validate_exercise(self, exercise: Dict[str, Any]) -> tuple[bool, List[str]]:
         errors = []
         
+        # Check required fields
+        required_fields = ['sentences', 'correct_answer', 'expected_answer', 'error_explanations']
+        for field in required_fields:
+            if field not in exercise:
+                errors.append(f"Missing required field: {field}")
+        
+        if errors:
+            return False, errors
+        
+        # Check sentences structure
         sentences = exercise.get('sentences', {})
         if set(sentences.keys()) != {'A', 'B', 'C', 'D'}:
             errors.append("Sentences must have exactly keys A, B, C, D")
+        
+        # Check correct answer is valid
+        correct = exercise.get('correct_answer', '')
+        if correct not in ['A', 'B', 'C', 'D']:
+            errors.append("correct_answer must be A, B, C, or D")
+        
+        # Verify expected_answer matches the correct sentence
+        if correct in sentences:
+            expected = exercise.get('expected_answer', '').strip()
+            actual_correct = sentences[correct].strip()
+            if expected != actual_correct:
+                errors.append(f"expected_answer doesn't match sentence {correct}")
+        
+        # Check that error_explanations doesn't include the correct answer
+        error_explanations = exercise.get('error_explanations', {})
+        if correct in error_explanations:
+            errors.append(f"error_explanations should not include the correct answer ({correct})")
+        
+        # Check that error_explanations covers the incorrect answers
+        incorrect_answers = set(['A', 'B', 'C', 'D']) - {correct}
+        missing_explanations = incorrect_answers - set(error_explanations.keys())
+        if missing_explanations:
+            errors.append(f"Missing error explanations for: {', '.join(missing_explanations)}")
         
         return len(errors) == 0, errors
 
