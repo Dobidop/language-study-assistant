@@ -11,11 +11,19 @@ from engine.logger import log_exercise_to_session
 from engine.utils import normalize_grammar_id, summarize_common_errors
 from engine.utils import categorize_session_errors, merge_error_categories
 from engine.curriculum import load_curriculum
+from engine.vocab_manager import get_vocab_manager  # NEW: Import vocabulary manager
 
 # Initialize Flask app to serve UI and API
 app = Flask(__name__, static_folder="web", static_url_path="/")
 # Align with engine.logger SESSION_DIR
 SESSION_LOGS_DIR = "sessions"
+
+# Initialize vocabulary manager on app startup
+print("🔧 Initializing vocabulary manager...")
+vocab_manager = get_vocab_manager()
+vocab_stats = vocab_manager.get_stats()
+print(f"✅ Vocabulary manager ready: {vocab_stats.get('total_words', 0)} words loaded")
+print(f"   Distribution: {vocab_stats.get('by_tags', {})}")
 
 # Utility to load the most recent session summary
 def load_latest_session_summary():
@@ -36,15 +44,24 @@ class ExerciseSessionManager:
         self.profile = load_user_profile("user_profile.json")
         self.recent_exercises = []
         self.session_start_time = datetime.now()
+        
+        # Log vocabulary manager integration
+        print(f"🎯 Session manager initialized with vocabulary manager")
+        print(f"   User level: {self.profile.get('level', 'unknown')}")
+        print(f"   Known vocabulary: {len(self.profile.get('vocab_summary', {}))}")
 
     def start_new_session(self):
         self.current_session = []
         self.recent_exercises = []
         self.session_start_time = datetime.now()
+        print(f"🎬 New session started at {self.session_start_time}")
 
     def end_current_session(self):
         if not self.current_session:
             return None
+        
+        print(f"🏁 Ending session with {len(self.current_session)} exercises")
+        
         summary = log_exercise_to_session({
             "session_id": f"session_{datetime.now().strftime('%Y_%m_%d_%H%M')}",
             "user_id": self.profile.get("user_id", "user_001"),
@@ -53,11 +70,15 @@ class ExerciseSessionManager:
             "exercises": self.current_session,
             "summary": None  # placeholder, will be filled below
         })
+        
         # Actually retrieve summary dict using load_latest_session_summary
         summary = load_latest_session_summary()
+        
         # Update profile with per-exercise records
         update_user_profile(self.profile, self.current_session)
         save_user_profile(self.profile, "user_profile.json")
+        
+        print(f"✅ Session completed and profile updated")
         return summary
 
     def generate_exercise(self, exercise_type="fill_in_blank"):
@@ -68,17 +89,20 @@ class ExerciseSessionManager:
             available_info = get_exercise_type_info()
             return {
                 "error": f"Invalid exercise type: {exercise_type}",
-                "available_types": available_info['available_types']  # No more legacy_types
+                "available_types": available_info['available_types']
             }
         
         try:
+            print(f"🎯 Generating {exercise_type} exercise (session exercise #{len(self.current_session) + 1})")
+            
             exercise = generate_exercise(
                 profile_path="user_profile.json",
-                recent_exercises=self.recent_exercises,  # Pass the actual recent exercises
+                recent_exercises=self.recent_exercises,
                 exercise_type=exercise_type
             )
 
             if not exercise or exercise.get('error'):
+                print(f"❌ Exercise generation failed: {exercise.get('error', 'Unknown error')}")
                 return None
 
             exercise_id = str(uuid4())
@@ -112,12 +136,12 @@ class ExerciseSessionManager:
                     'instruction': 'Arrange these words in the correct order'
                 })
             elif exercise_type in ['fill_in_blank', 'fill_multiple_blanks', 'translation']:
-                # Translation now uses the same structure as other exercises
                 response.update({
                     'expected_answer': exercise.get('expected_answer'),
                     'filled_sentence': exercise.get('filled_sentence')
                 })
             
+            print(f"✅ Exercise generated successfully: {exercise.get('prompt', '')[:50]}...")
             return response
             
         except Exception as e:
@@ -129,7 +153,10 @@ class ExerciseSessionManager:
     def evaluate_exercise(self, exercise_id, user_answer):
         matching = next((ex for ex in self.current_session if ex['exercise_id'] == exercise_id), None)
         if not matching:
+            print(f"❌ Exercise not found: {exercise_id}")
             return None
+        
+        print(f"📝 Evaluating exercise: {matching.get('exercise_type')} - {matching.get('prompt', '')[:50]}...")
         
         exercise_type = matching.get('exercise_type')
         expected = matching.get('expected_answer', '')
@@ -190,7 +217,6 @@ class ExerciseSessionManager:
                 expected = 'A'  # Fallback, though this shouldn't happen with validation
             
             # For error correction, we can also provide the actual sentence text in feedback
-            # to make it clearer what the correct answer was
             sentences = matching.get('sentences', {})
             expected_sentence = sentences.get(expected, '') if expected in sentences else ''
             
@@ -204,7 +230,7 @@ class ExerciseSessionManager:
             expected_order = matching.get('expected_answer', [])
             expected = ' '.join(expected_order) if isinstance(expected_order, list) else str(expected_order)
         elif exercise_type == 'translation':
-            # Translation exercises now handled the same as other text-based exercises
+            # Translation exercises handled the same as other text-based exercises
             comparison_text = user_answer.strip()
             expected = str(expected).strip()
         else:
@@ -221,7 +247,9 @@ class ExerciseSessionManager:
                 'grammar_focus': matching.get('grammar_focus', []),
                 'explanation_summary': 'Perfect match — no issues detected.'
             }
+            print(f"✅ Correct answer!")
         else:
+            print(f"❌ Incorrect - using LLM evaluation")
             # Use LLM evaluation for incorrect answers
             feedback = evaluate_answer(
                 prompt=matching.get('prompt', ''),
@@ -258,7 +286,7 @@ class ExerciseSessionManager:
         if len(self.recent_exercises) > 10:
             self.recent_exercises = self.recent_exercises[-10:]
             
-        print(f"📝 Added to recent exercises. Total: {len(self.recent_exercises)}")  # Debug
+        print(f"📝 Exercise evaluated. Recent exercises: {len(self.recent_exercises)}")
         
         return feedback
 
@@ -274,6 +302,69 @@ def serve_index():
 def serve_curriculum(filename):
     """Serve curriculum files for frontend access"""
     return send_from_directory('curriculum', filename)
+
+# -- Vocabulary API Endpoints --
+@app.route('/api/vocab/stats', methods=['GET'])
+def api_vocab_stats():
+    """Get vocabulary database statistics"""
+    stats = vocab_manager.get_stats()
+    return jsonify(stats), 200
+
+@app.route('/api/vocab/search', methods=['GET'])
+def api_vocab_search():
+    """Search vocabulary by query string"""
+    query = request.args.get('q', '')
+    limit = int(request.args.get('limit', 10))
+    
+    if not query:
+        return jsonify({'error': 'Query parameter "q" is required'}), 400
+    
+    results = vocab_manager.search_words(query, limit)
+    
+    # Return detailed results with translations
+    detailed_results = []
+    for word in results:
+        word_data = vocab_manager.get_word_data(word)
+        if word_data:
+            detailed_results.append({
+                'word': word,
+                'translation': word_data.get('translation', ''),
+                'frequency_rank': word_data.get('frequency_rank'),
+                'topik_level': word_data.get('topik_level'),
+                'tags': word_data.get('tags')
+            })
+    
+    return jsonify({'results': detailed_results}), 200
+
+@app.route('/api/vocab/suggestions/<level>', methods=['GET'])
+def api_vocab_suggestions(level):
+    """Get vocabulary suggestions for a specific level"""
+    limit = int(request.args.get('limit', 10))
+    
+    # Get user's known words from profile
+    profile = load_user_profile("user_profile.json")
+    known_words = set(profile.get('vocab_summary', {}).keys())
+    
+    suggestions = vocab_manager.get_words_for_level(
+        user_level=level,
+        known_words=known_words,
+        limit=limit
+    )
+    
+    # Return detailed suggestions
+    detailed_suggestions = []
+    for word in suggestions:
+        word_data = vocab_manager.get_word_data(word)
+        if word_data:
+            detailed_suggestions.append({
+                'word': word,
+                'translation': word_data.get('translation', ''),
+                'frequency_rank': word_data.get('frequency_rank'),
+                'topik_level': word_data.get('topik_level'),
+                'tags': word_data.get('tags')
+            })
+    
+    return jsonify({'suggestions': detailed_suggestions}), 200
 
 # -- Session Management --
 @app.route('/api/session/start', methods=['POST'])
@@ -379,5 +470,52 @@ def api_aggregate_common_errors():
     save_user_profile(profile, 'user_profile.json')
     return jsonify({'message': 'Common errors summarized.', 'categories': summary}), 200
 
+# -- Vocabulary Management Endpoints --
+@app.route('/api/vocab/reload', methods=['POST'])
+def api_vocab_reload():
+    """Reload vocabulary data (useful for development)"""
+    try:
+        vocab_manager.reload()
+        stats = vocab_manager.get_stats()
+        return jsonify({
+            'message': 'Vocabulary reloaded successfully',
+            'stats': stats
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to reload vocabulary: {str(e)}'}), 500
+
+@app.route('/api/vocab/word/<word>', methods=['GET'])
+def api_get_word_details(word):
+    """Get detailed information about a specific word"""
+    word_data = vocab_manager.get_word_data(word)
+    if not word_data:
+        return jsonify({'error': 'Word not found'}), 404
+    
+    # Add the word itself to the response
+    response = {'word': word, **word_data}
+    return jsonify(response), 200
+
+# -- Development/Debug Endpoints --
+@app.route('/api/debug/vocab-manager', methods=['GET'])
+def api_debug_vocab_manager():
+    """Debug endpoint to inspect vocabulary manager state"""
+    stats = vocab_manager.get_stats()
+    sample_words = vocab_manager.get_all_words()[:10]  # First 10 words as sample
+    
+    return jsonify({
+        'stats': stats,
+        'sample_words': sample_words,
+        'total_loaded': len(vocab_manager.get_all_words()),
+        'manager_initialized': vocab_manager._initialized
+    }), 200
+
 if __name__ == '__main__':
+    print("🚀 Starting Korean Study Assistant with centralized vocabulary management...")
+    print(f"📚 Vocabulary Manager Status:")
+    print(f"   - Total words: {vocab_stats.get('total_words', 0)}")
+    print(f"   - TOPIK levels: {list(vocab_stats.get('by_topik_level', {}).keys())}")
+    print(f"   - Tags: {list(vocab_stats.get('by_tags', {}).keys())}")
+    print(f"   - Frequency data: {vocab_stats.get('frequency_coverage', 'N/A')}")
+    print()
+    
     app.run(host='0.0.0.0', port=8000, debug=True)

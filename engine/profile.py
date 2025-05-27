@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from engine.utils import normalize_grammar_id
 
 # Constants for SM-2 algorithm
 MIN_EASE_FACTOR = 1.3
@@ -198,7 +199,7 @@ def update_user_profile(profile: dict, session_exercises: list) -> dict:
     Updates the user profile based on session exercises.
     Each exercise in session_exercises must have keys:
       - 'grammar_focus': list of grammar IDs
-      - 'vocab_used': list of vocabulary strings
+      - 'vocab_used': list of vocabulary strings  
       - 'is_correct': bool
     Returns updated profile.
     """
@@ -211,18 +212,21 @@ def update_user_profile(profile: dict, session_exercises: list) -> dict:
 
     for ex in session_exercises:
         correct = ex.get('is_correct', False)
-        # Update grammar items
+        # Update grammar items - ADD NORMALIZATION HERE
         for gid in ex.get('grammar_focus', []):
+            # ✅ NORMALIZE THE GRAMMAR ID BEFORE USING IT
+            normalized_gid = normalize_grammar_id(gid)
+            
             gsum = profile['grammar_summary'].setdefault(
-                gid, {'exposure': 0, 'reps': 0, 'ease_factor': INITIAL_EASE,
-                      'interval': INITIAL_INTERVALS[0], 'lapses': 0}
+                normalized_gid, {'exposure': 0, 'reps': 0, 'ease_factor': INITIAL_EASE,
+                              'interval': INITIAL_INTERVALS[0], 'lapses': 0}
             )
             # Increment exposure
             gsum['exposure'] = gsum.get('exposure', 0) + 1
             # Apply SM-2
             _apply_sm2(gsum, correct)
 
-        # Update vocabulary items
+        # Update vocabulary items (these don't need normalization)
         for word in ex.get('vocab_used', []):
             vsum = profile['vocab_summary'].setdefault(
                 word, {'reps': 0, 'ease_factor': INITIAL_EASE,

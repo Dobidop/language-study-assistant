@@ -5,10 +5,10 @@ from engine.llm_client import chat
 from engine.planner import select_review_and_new_items
 from engine.utils import normalize_grammar_id, sanitize_json_string
 from engine.exercise_types import ExerciseTypeFactory, ExerciseConfig, generate_exercise_with_type
+from engine.vocab_manager import get_vocab_manager  # NEW: Use centralized vocab manager
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-VOCAB_DATA_PATH = os.path.join(BASE_DIR, 'vocab_data.json')
 DEBUG_DIR = os.path.join(BASE_DIR, 'debug')
 
 # Load config for debug settings
@@ -22,25 +22,8 @@ DEBUG_MODE = CONFIG.get('debug_llm', True)  # Default to True for development
 if DEBUG_MODE and not os.path.exists(DEBUG_DIR):
     os.makedirs(DEBUG_DIR)
 
-# Paths
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-VOCAB_DATA_PATH = os.path.join(BASE_DIR, 'vocab_data.json')
-
-# Load vocabulary data once and cache it
-with open(VOCAB_DATA_PATH, 'r', encoding='utf-8') as f:
-    VOCAB_DATA = json.load(f)
-
-# Ensure VOCAB_DATA is in dictionary format
-if isinstance(VOCAB_DATA, list):
-    print("⚠️  Converting vocabulary data from array to dictionary format...")
-    vocab_dict = {}
-    for entry in VOCAB_DATA:
-        if isinstance(entry, dict) and 'vocab' in entry:
-            vocab_word = entry['vocab']
-            vocab_info = {k: v for k, v in entry.items() if k != 'vocab'}
-            vocab_dict[vocab_word] = vocab_info
-    VOCAB_DATA = vocab_dict
-    print(f"✅ Converted {len(VOCAB_DATA)} vocabulary entries to dictionary format")
+# Get the global vocabulary manager instance
+vocab_manager = get_vocab_manager()
 
 # Helper loaders
 
@@ -138,36 +121,13 @@ def load_curriculum(path: str = None) -> dict:
         return json.load(f)
 
 
-def load_vocab_data(path: str = None) -> dict:
-    """
-    Load vocabulary data and ensure it's in dictionary format.
-    """
-    path = path or VOCAB_DATA_PATH
-    with open(path, 'r', encoding='utf-8') as f:
-        vocab_data = json.load(f)
-    
-    # Ensure dictionary format (with fallback for legacy array format)
-    if isinstance(vocab_data, list):
-        print("⚠️  Converting legacy array format to dictionary format...")
-        vocab_dict = {}
-        for entry in vocab_data:
-            if isinstance(entry, dict) and 'vocab' in entry:
-                vocab_word = entry['vocab']
-                vocab_info = {k: v for k, v in entry.items() if k != 'vocab'}
-                vocab_dict[vocab_word] = vocab_info
-        return vocab_dict
-    elif isinstance(vocab_data, dict):
-        return vocab_data
-    else:
-        raise ValueError(f"Invalid vocab_data format: {type(vocab_data)}")
-
-
 def generate_exercise(user_profile: dict,
                       grammar_targets: list,
                       recent_exercises: list = None,
                       exercise_type: str = "fill_in_blank") -> dict:
     """
     Generate an exercise using the new modular system.
+    Now uses centralized vocabulary manager instead of loading vocab data repeatedly.
     """
     print(f"🎯 Generating {exercise_type} exercise...")
     
@@ -178,7 +138,7 @@ def generate_exercise(user_profile: dict,
         # Use new modular system
         print(f"✅ Using new modular system for {exercise_type}")
         
-        # Split vocab into categories by SRS level and add new words from vocab_data
+        # Split vocab into categories by SRS level using vocabulary manager
         vocab_summary = user_profile.get('vocab_summary', {})
         vocab_new, vocab_familiar, vocab_core = [], [], []
         
@@ -192,25 +152,37 @@ def generate_exercise(user_profile: dict,
             else:
                 vocab_core.append(w)
         
-        # Add new vocabulary from vocab_data (words not yet learned)
+        # Get new vocabulary suggestions from vocabulary manager
         known_words = set(vocab_summary.keys())
-        available_new_words = []
+        user_level = user_profile.get('level', user_profile.get('user_level', 'beginner'))
         
-        # Get words from vocab_data that aren't in user's vocabulary yet
-        for word in VOCAB_DATA.keys():
-            if word not in known_words:
-                available_new_words.append(word)
+        # Get level-appropriate new words using the vocabulary manager
+        new_word_suggestions = vocab_manager.get_words_for_level(
+            user_level=user_level,
+            known_words=known_words,
+            limit=15  # Get more candidates for better variety
+        )
         
-        # Sort by frequency rank if available, take top candidates for new words
-        available_new_words.sort(key=lambda w: VOCAB_DATA[w].get('frequency_rank', float('inf')))
-        vocab_new.extend(available_new_words[:10])  # Add top 10 new words as candidates
+        # Also get some high-frequency words as backup
+        frequent_new_words = vocab_manager.get_new_words_for_user(
+            known_words=known_words,
+            limit=10,
+            prefer_frequent=True
+        )
+        
+        # Combine and deduplicate new word suggestions
+        available_new_words = list(dict.fromkeys(new_word_suggestions + frequent_new_words))
+        vocab_new.extend(available_new_words)
         
         # Ensure we have some core vocabulary if user is new
         if not vocab_core and not vocab_familiar:
             # For brand new users, add some high-frequency words as familiar
-            basic_words = available_new_words[:5]  # Take 5 most frequent words
-            vocab_familiar.extend(basic_words)
-            print(f"🔰 New user detected - added {len(basic_words)} basic words to familiar vocabulary")
+            basic_words = vocab_manager.get_words_by_frequency(limit=8)
+            # Only add words that aren't already in vocab_new
+            for word in basic_words:
+                if word not in vocab_new:
+                    vocab_familiar.append(word)
+            print(f"🔰 New user detected - added {len(vocab_familiar)} basic words to familiar vocabulary")
         
         print(f"📚 Vocabulary counts: Core={len(vocab_core)}, Familiar={len(vocab_familiar)}, New={len(vocab_new)}")
         if recent_exercises:
@@ -230,9 +202,9 @@ def generate_exercise(user_profile: dict,
         config = ExerciseConfig(
             user_profile=user_profile,
             grammar_targets=grammar_targets,
-            vocab_new=vocab_new,
-            vocab_familiar=vocab_familiar,
-            vocab_core=vocab_core,
+            vocab_new=vocab_new[:10],  # Limit to prevent overwhelming the LLM
+            vocab_familiar=vocab_familiar[:15],
+            vocab_core=vocab_core[:20],
             grammar_maturity_section=grammar_maturity_section,
             recent_exercises=recent_exercises
         )
@@ -247,7 +219,7 @@ def generate_exercise(user_profile: dict,
         print(f'\033[38;2;100;149;237m  Schema Fields:\033[0m {", ".join(exercise_data["schema"].keys())}')
         print(f'\033[38;2;100;149;237m  Prompt Length:\033[0m {len(exercise_data["prompt"])} characters')
         print(f'\033[38;2;100;149;237m  Grammar Targets:\033[0m {", ".join(config.grammar_targets)}')
-        print(f'\033[38;2;100;149;237m  Vocab Categories:\033[0m Core({len(vocab_core)}), Familiar({len(vocab_familiar)}), New({len(vocab_new)})')
+        print(f'\033[38;2;100;149;237m  Vocab Categories:\033[0m Core({len(config.vocab_core)}), Familiar({len(config.vocab_familiar)}), New({len(config.vocab_new)})')
         print(f'\033[38;2;100;149;237m  Recent Exercises:\033[0m {len(recent_exercises or [])}')
         
         # Show prompt preview (first 200 chars)
@@ -263,7 +235,12 @@ def generate_exercise(user_profile: dict,
             "exercise_type": exercise_type,
             "grammar_targets": config.grammar_targets,
             "prompt": exercise_data['prompt'],
-            "temperature": 0.4
+            "temperature": 0.4,
+            "vocab_stats": {
+                "core_count": len(config.vocab_core),
+                "familiar_count": len(config.vocab_familiar), 
+                "new_count": len(config.vocab_new)
+            }
         }, exercise_type=exercise_type, file_only=True)  # Large prompts go to file only
         
         response_text = chat([
@@ -408,9 +385,24 @@ def validate_exercise_type(exercise_type: str) -> bool:
     return exercise_type in available
 
 
+# Backward compatibility function - now uses vocabulary manager
+def load_vocab_data(path: str = None) -> dict:
+    """
+    Legacy function for backward compatibility.
+    Now returns cached data from VocabularyManager instead of reading file.
+    """
+    return vocab_manager._vocab_data
+
+
 # Example CLI usage
 if __name__ == '__main__':
     print("🧪 Testing exercise generation...")
+    
+    # Print vocabulary manager stats
+    print(f"\n📊 Vocabulary Manager Stats:")
+    stats = vocab_manager.get_stats()
+    for key, value in stats.items():
+        print(f"  {key}: {value}")
     
     # Test each exercise type
     test_types = ['fill_in_blank', 'multiple_choice', 'fill_multiple_blanks', 'error_correction', 'sentence_building', 'translation']

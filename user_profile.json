@@ -133,6 +133,42 @@
       "lapses": 3,
       "srs_level": 3,
       "next_review_date": "2025-06-10"
+    },
+    "-지_않아요": {
+      "exposure": 5,
+      "reps": 0,
+      "ease_factor": 2.3,
+      "interval": 1,
+      "lapses": 4,
+      "srs_level": 0,
+      "next_review_date": "2025-05-28"
+    },
+    "-으세요": {
+      "exposure": 6,
+      "reps": 0,
+      "ease_factor": 1.3,
+      "interval": 1,
+      "lapses": 6,
+      "srs_level": 0,
+      "next_review_date": "2025-05-28"
+    },
+    "-고_싶다": {
+      "exposure": 3,
+      "reps": 1,
+      "ease_factor": 2.5,
+      "interval": 1,
+      "lapses": 1,
+      "srs_level": 1,
+      "next_review_date": "2025-05-28"
+    },
+    "-으로": {
+      "exposure": 3,
+      "reps": 1,
+      "ease_factor": 2.5,
+      "interval": 1,
+      "lapses": 1,
+      "srs_level": 1,
+      "next_review_date": "2025-05-28"
     }
   },
   "vocab_summary": {}
