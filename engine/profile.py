@@ -31,7 +31,7 @@ DEFAULT_PROFILE = {
     "grammar_points_seen": []
   },
   "learning_preferences": {
-    "preferred_formality": "polite",
+    "preferred_formality": "polite informal",
     "max_new_words_per_session": 2,
     "preferred_exercise_types": ["fill_in_blank", "translation"],
     "prefers_korean_prompts": False,

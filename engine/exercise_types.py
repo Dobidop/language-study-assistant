@@ -73,15 +73,55 @@ class BaseExerciseType(ABC):
         }
     
     def _format_recent_exercises(self, recent_exercises: Optional[List[Dict]]) -> str:
-        """Format recent exercises for prompt inclusion"""
+        """Format recent exercises for prompt inclusion with more detail"""
         if not recent_exercises:
             return "None"
         
         formatted = []
         for idx, ex in enumerate(recent_exercises[-5:], 1):
-            formatted.append(f"- Exercise {idx}: {ex.get('exercise_type', 'unknown')}")
+            exercise_type = ex.get('exercise_type', 'unknown')
+            formatted.append(f"- Exercise {idx}: {exercise_type}")
             formatted.append(f"  Prompt: {ex.get('prompt', 'N/A')}")
+            
+            # Add exercise-specific details to help avoid repetition
+            if exercise_type == 'sentence_building':
+                word_pieces = ex.get('word_pieces', [])
+                if word_pieces:
+                    formatted.append(f"  Words used: {', '.join(word_pieces[:5])}{'...' if len(word_pieces) > 5 else ''}")
+                expected_answer = ex.get('expected_answer', [])
+                if expected_answer:
+                    formatted.append(f"  Expected order: {' '.join(expected_answer)}")
+            elif exercise_type == 'multiple_choice':
+                choices = ex.get('choices', {})
+                if choices:
+                    choice_text = ', '.join([f"{k}: {v}" for k, v in list(choices.items())[:2]])
+                    formatted.append(f"  Choices (sample): {choice_text}...")
+            elif exercise_type == 'error_correction':
+                sentences = ex.get('sentences', {})
+                if sentences:
+                    # Show the correct sentence if available
+                    correct_answer = ex.get('correct_answer', '')
+                    if correct_answer in sentences:
+                        formatted.append(f"  Correct sentence: {sentences[correct_answer]}")
+            elif exercise_type in ['fill_in_blank', 'fill_multiple_blanks']:
+                expected_answer = ex.get('expected_answer', '')
+                if expected_answer:
+                    if isinstance(expected_answer, list):
+                        formatted.append(f"  Expected answers: {', '.join(expected_answer)}")
+                    else:
+                        formatted.append(f"  Expected answer: {expected_answer}")
+            elif exercise_type == 'translation':
+                expected_answer = ex.get('expected_answer', '')
+                if expected_answer:
+                    formatted.append(f"  Translation: {expected_answer}")
+            
+            # Add grammar focus and result
+            grammar_focus = ex.get('grammar_focus', [])
+            if grammar_focus:
+                formatted.append(f"  Grammar tested: {', '.join(grammar_focus)}")
+            
             formatted.append(f"  Result: {'correct' if ex.get('is_correct') else 'incorrect'}")
+            formatted.append("")  # Empty line between exercises
         
         return "\n".join(formatted)
 
@@ -131,7 +171,7 @@ You are a {sections['target_lang']} language tutor assistant. Create a fill-in-t
 
 ## Recent Session History:
 {sections['recent_exercises']}
-Avoid repeating similar patterns.
+Avoid repeating similar patterns, vocabulary, or grammar combinations from recent exercises.
 
 ## Response Format:
 Return ONLY a valid JSON object:
@@ -222,7 +262,10 @@ You are a {sections['target_lang']} language tutor assistant. Create a multiple 
 
 ## Vocabulary: Core: {sections['vocab_core']}, Familiar: {sections['vocab_familiar']}, New: {sections['vocab_new']}
 ## Grammar Maturity: {sections['grammar_maturity']}
-## Recent History: {sections['recent_exercises']}
+
+## Recent Session History:
+{sections['recent_exercises']}
+Avoid repeating similar patterns, vocabulary, or grammar combinations from recent exercises.
 
 ## Response Format:
 {{
@@ -289,7 +332,10 @@ You are a {sections['target_lang']} language tutor assistant. Create a multiple 
 
 ## Vocabulary: Core: {sections['vocab_core']}, Familiar: {sections['vocab_familiar']}, New: {sections['vocab_new']}
 ## Grammar Maturity: {sections['grammar_maturity']}
-## Recent History: {sections['recent_exercises']}
+
+## Recent Session History:
+{sections['recent_exercises']}
+Avoid repeating similar patterns, vocabulary, or grammar combinations from recent exercises.
 
 ## Response Format:
 {{
@@ -360,7 +406,7 @@ You are a {sections['target_lang']} language tutor assistant. Create an error co
 - Others should have subtle grammar mistakes related to: {sections['grammar_points']}
 - Mistakes should be realistic learner errors
 - Use {sections['formality']} formality level
-- None of the sentences in this set should be identical! They MUST be different from eachother.
+- None of the sentences in this set should be identical! They MUST be different from each other.
 - IMPORTANT: The correct sentence can be in ANY position (A, B, C, or D) - don't always make it B!
 
 ## Grammar Maturity:
@@ -373,7 +419,7 @@ You are a {sections['target_lang']} language tutor assistant. Create an error co
 
 ## Recent Session History:
 {sections['recent_exercises']}
-Avoid repeating patterns from the session history. None of the new sentences can be identical to the sentences form the recent session history.
+Avoid repeating patterns from the session history. None of the new sentences can be identical to the sentences from the recent session history.
 
 ## Response Format:
 Return ONLY a valid JSON object:
@@ -486,7 +532,8 @@ Create a sentence building exercise where the user arranges Korean words/phrases
 ## Exercise Requirements:
 - Exercise type: "sentence_building"  
 - Provide 5-7 Korean words/phrases in random order
-- User must arrange them to form a grammatically correct sentence
+- Provide 1-3 additional Korean words/phrases which are NOT used in the final sentence (distractors)
+- User must arrange only the correct words/phrases to form a grammatically correct sentence
 - Test grammar points: {sections['grammar_points']}
 - Use {sections['formality']} formality level
 
@@ -496,31 +543,48 @@ Create a sentence building exercise where the user arranges Korean words/phrases
 - The sentence should be grammatically complete when pieces are arranged correctly
 - Don't separate particles from their host words
 
-## Vocabulary: Core: {sections['vocab_core']}, Familiar: {sections['vocab_familiar']}, New: {sections['vocab_new']}
-## Grammar Maturity: {sections['grammar_maturity']}
-## Recent History: {sections['recent_exercises']}
+## Vocabulary Guidelines:
+- Core vocabulary (use freely): {sections['vocab_core']}
+- Familiar vocabulary (use some): {sections['vocab_familiar']}
+- New vocabulary (use 1-2 max): {sections['vocab_new']}
+
+## Grammar Maturity:
+{sections['grammar_maturity']}
+
+## Recent Session History:
+{sections['recent_exercises']}
+IMPORTANT: Avoid using the same words, word combinations, or sentence patterns from recent exercises. Create genuinely different content.
 
 ## Response Format:
 {{
   "exercise_type": "sentence_building",
   "prompt": "Arrange these words to form a correct sentence:",
-  "word_pieces": ["word1", "word2", "word3", "word4", "word5"],
+  "word_pieces": ["word1", "word2", "word3", "word4", "word5", "distractor1", "distractor2"],
   "expected_answer": ["word2", "word1", "word4", "word5", "word3"],
-  "filled_sentence": "correct sentence formed by arranging pieces",
+  "filled_sentence": "correct sentence formed by arranging the non-distractor pieces",
   "glossary": {{"term": "definition"}},
   "translated_sentence": "translation",
   "grammar_focus": ["grammar IDs"]
 }}
 
-Example of GOOD word pieces: ["저는", "친구의", "책을", "읽어", "주세요"]
-Example of BAD word pieces: ["저", "는", "친구", "의", "책", "을", "읽어", "주세요"]"""
+Key Requirements:
+- word_pieces contains ALL words (correct + distractors) in random order
+- expected_answer contains ONLY the correct words in proper order (no distractors)
+- The expected_answer when joined should form the filled_sentence
+- Distractors should be plausible but not needed for the sentence
+
+Example of GOOD word pieces: ["저는", "친구의", "책을", "읽어요", "수업", "과일을", "마셔요"]
+Expected answer: ["저는", "친구의", "책을", "읽어요"]
+(Distractors: "수업", "과일을", "마셔요")
+
+Example of BAD word pieces: ["저", "는", "친구", "의", "책", "을", "읽어", "요"]"""
     
     def get_response_schema(self) -> Dict[str, str]:
         return {
             "exercise_type": "string",
             "prompt": "string",
-            "word_pieces": "array of strings",
-            "expected_answer": "array of strings (correct order)",
+            "word_pieces": "array of strings (includes distractors)",
+            "expected_answer": "array of strings (correct order, no distractors)",
             "filled_sentence": "string",
             "glossary": "object",
             "translated_sentence": "string",
@@ -534,17 +598,25 @@ Example of BAD word pieces: ["저", "는", "친구", "의", "책", "을", "읽�
         answer = exercise.get('expected_answer', [])
         filled_sentence = exercise.get('filled_sentence', '')
         
-        if set(pieces) != set(answer):
-            errors.append("Expected answer must contain same words as word_pieces")
+        # Check that all expected answer pieces are in word_pieces
+        missing_pieces = set(answer) - set(pieces)
+        if missing_pieces:
+            errors.append(f"Expected answer contains pieces not in word_pieces: {missing_pieces}")
         
-        # Check if the filled sentence can actually be formed by joining the pieces
+        # Check that there are some distractors (word_pieces should be longer than answer)
+        if len(pieces) <= len(answer):
+            errors.append("word_pieces should contain distractors (should be longer than expected_answer)")
+        
+        # Check if the filled sentence can actually be formed by joining the answer pieces
         if answer:
             reconstructed = ' '.join(answer)
+            # Allow for spacing differences in Korean
             if reconstructed.replace(' ', '') != filled_sentence.replace(' ', ''):
-                errors.append("Filled sentence doesn't match joined word pieces")
+                errors.append("Filled sentence doesn't match joined expected_answer pieces")
         
         # Check for incomplete particles (common issue)
-        for piece in pieces:
+        all_pieces = pieces + answer
+        for piece in all_pieces:
             if len(piece) == 1 and piece in ['을', '를', '이', '가', '은', '는', '의', '에', '에서', '도', '와', '과']:
                 errors.append(f"Standalone particle '{piece}' detected - particles should be attached to words")
         
@@ -588,7 +660,7 @@ You are a {sections['target_lang']} language tutor assistant. Create a translati
 
 ## Recent Session History:
 {sections['recent_exercises']}
-Avoid repeating similar patterns.
+Avoid repeating similar patterns, vocabulary, or grammar combinations from recent exercises.
 
 ## Response Format:
 Return ONLY a valid JSON object:
@@ -656,7 +728,7 @@ class ExerciseTypeFactory:
         'multiple_choice': MultipleChoiceExercise,
         'error_correction': ErrorCorrectionExercise,
         'sentence_building': SentenceBuildingExercise,
-        'translation': TranslationExercise,  # Now using modular system
+        'translation': TranslationExercise,
     }
     
     @classmethod
