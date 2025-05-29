@@ -44,6 +44,7 @@ class ExerciseSessionManager:
         self.profile = load_user_profile("user_profile.json")
         self.recent_exercises = []
         self.session_start_time = datetime.now()
+        self.session_active = False  # NEW: Track session state explicitly
         
         # Log vocabulary manager integration
         print(f"🎯 Session manager initialized with vocabulary manager")
@@ -54,35 +55,79 @@ class ExerciseSessionManager:
         self.current_session = []
         self.recent_exercises = []
         self.session_start_time = datetime.now()
+        self.session_active = True  # NEW: Set session as active
         print(f"🎬 New session started at {self.session_start_time}")
 
     def end_current_session(self):
-        if not self.current_session:
+        # Check if session is active instead of checking exercise count
+        if not self.session_active:
+            print("❌ No active session to end")
             return None
         
         print(f"🏁 Ending session with {len(self.current_session)} exercises")
         
-        summary = log_exercise_to_session({
+        # Create session log even if no exercises were completed
+        session_log = {
             "session_id": f"session_{datetime.now().strftime('%Y_%m_%d_%H%M')}",
             "user_id": self.profile.get("user_id", "user_001"),
             "date": datetime.now().strftime('%Y-%m-%d'),
             "duration_minutes": (datetime.now() - self.session_start_time).seconds // 60,
             "exercises": self.current_session,
-            "summary": None  # placeholder, will be filled below
-        })
+            "summary": None  # Will be filled below
+        }
         
-        # Actually retrieve summary dict using load_latest_session_summary
-        summary = load_latest_session_summary()
+        # Create summary based on session data
+        if self.current_session:
+            # Normal session with exercises
+            # Calculate summary stats
+            total_exercises = len(self.current_session)
+            correct_count = sum(1 for ex in self.current_session if ex.get('is_correct', False))
+            accuracy_rate = round((correct_count / total_exercises) * 100) if total_exercises > 0 else 0
+            
+            summary = {
+                "total_exercises": total_exercises,
+                "accuracy_rate": accuracy_rate,
+                "duration_minutes": (datetime.now() - self.session_start_time).seconds // 60,
+                "error_categories": [],  # Could be populated with error analysis
+                "session_type": "normal"
+            }
+            
+            # Add summary to session log and save it
+            session_log["summary"] = summary
+            log_exercise_to_session(session_log)
+            
+            # Update profile with exercise records
+            update_user_profile(self.profile, self.current_session)
+            save_user_profile(self.profile, "user_profile.json")
+        else:
+            # Empty session - create minimal summary
+            summary = {
+                "total_exercises": 0,
+                "accuracy_rate": 0,
+                "duration_minutes": (datetime.now() - self.session_start_time).seconds // 60,
+                "error_categories": [],
+                "session_type": "empty"
+            }
+            
+            # Add summary to session log and save it
+            session_log["summary"] = summary
+            log_exercise_to_session(session_log)
         
-        # Update profile with per-exercise records
-        update_user_profile(self.profile, self.current_session)
-        save_user_profile(self.profile, "user_profile.json")
+        # Mark session as inactive
+        self.session_active = False
         
         print(f"✅ Session completed and profile updated")
         return summary
 
+    # Rest of the methods remain the same...
     def generate_exercise(self, exercise_type="fill_in_blank"):
         """Generate exercise with validation for exercise type"""
+        
+        # Check if session is active
+        if not self.session_active:
+            return {
+                "error": "No active session. Please start a new session first."
+            }
         
         # Validate exercise type
         if not validate_exercise_type(exercise_type):
@@ -402,10 +447,33 @@ def api_answer_exercise():
 
 @app.route('/api/session/end', methods=['POST'])
 def api_end_session():
-    summary = manager.end_current_session()
-    if summary:
-        return jsonify({'summary': summary}), 200
-    return jsonify({'error': 'No active session.'}), 400
+    try:
+        print("🔚 API: Attempting to end session...")
+        summary = manager.end_current_session()
+        print(f"🔚 API: End session returned: {summary}")
+        
+        if summary is not None:
+            # Session ended successfully (even if it was empty)
+            session_type = summary.get('session_type', 'normal')
+            print(f"🔚 API: Session type: {session_type}")
+            
+            if session_type == 'empty':
+                return jsonify({
+                    'summary': summary,
+                    'message': 'Session ended (no exercises completed)'
+                }), 200
+            else:
+                return jsonify({'summary': summary}), 200
+        else:
+            # No active session
+            print("🔚 API: No active session detected")
+            return jsonify({'error': 'No active session to end.'}), 400
+            
+    except Exception as e:
+        print(f"❌ API: Error ending session: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to end session: {str(e)}'}), 500
 
 # -- Exercise Type Information --
 @app.route('/api/exercise/types', methods=['GET'])

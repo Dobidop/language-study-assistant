@@ -229,6 +229,8 @@
 
 <div id="progress">Session not started</div>
 
+<div id="feedback" style="display: none;"></div>
+
 <div id="exercise">
   <strong>Exercise:</strong> 
   <p id="prompt">Press "Start New Session" to begin!</p>
@@ -278,7 +280,6 @@
   </div>
 </div>
 
-<div id="feedback" style="display: none;"></div>
 
 <div id="controls">
   <button id="startSessionBtn">Start New Session</button>
@@ -428,23 +429,37 @@ async function startSession() {
 async function endSession() {
   document.getElementById("loadingOverlay").style.display = "block";
 
-  const response = await fetch("/api/session/end", { method: "POST" });
-  const data = await response.json();
+  try {
+    const response = await fetch("/api/session/end", { method: "POST" });
+    const data = await response.json();
 
-  document.getElementById("loadingOverlay").style.display = "none";
+    document.getElementById("loadingOverlay").style.display = "none";
 
-  if (response.ok && data.summary) {
-    sessionActive = false;
-    document.getElementById("startSessionBtn").disabled = false;
-    document.getElementById("endSessionBtn").disabled = true;
-    document.getElementById("exercise").style.display = "none";
-    document.getElementById("feedback").style.display = "none";
-    document.getElementById("newExerciseBtn").style.display = "none";
+    if (response.ok && data.summary) {
+      sessionActive = false;
+      document.getElementById("startSessionBtn").disabled = false;
+      document.getElementById("endSessionBtn").disabled = true;
+      document.getElementById("exercise").style.display = "none";
+      document.getElementById("feedback").style.display = "none";
+      document.getElementById("newExerciseBtn").style.display = "none";
 
-    alert(`Session Complete!\nAccuracy: ${data.summary.accuracy_rate}%\nExercises: ${data.summary.total_exercises}`);
-    window.location.href = "dashboard.html";
-  } else {
-    alert(data.error || "Failed to end session properly.");
+      // Handle both normal and empty sessions
+      const summary = data.summary;
+      const sessionType = summary.session_type || 'normal';
+      
+      if (sessionType === 'empty') {
+        alert(`Session Ended!\nNo exercises were completed.\nDuration: ${summary.duration_minutes} minutes`);
+      } else {
+        alert(`Session Complete!\nAccuracy: ${summary.accuracy_rate}%\nExercises: ${summary.total_exercises}\nDuration: ${summary.duration_minutes} minutes`);
+      }
+      
+      window.location.href = "dashboard.html";
+    } else {
+      alert(data.error || "Failed to end session properly.");
+    }
+  } catch (error) {
+    document.getElementById("loadingOverlay").style.display = "none";
+    alert("Error ending session: " + error.message);
   }
 }
 

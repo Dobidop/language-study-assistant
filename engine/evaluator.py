@@ -31,7 +31,7 @@ Return your evaluation in the following JSON format:
 }}
     """
 
-    print(f' ==> [Line 10]: \033[38;2;15;179;254m[evaluation_prompt]\033[0m({type(evaluation_prompt).__name__}) = \033[38;2;73;189;127m{evaluation_prompt}\033[0m')
+    #print(f' ==> [Line 10]: \033[38;2;15;179;254m[evaluation_prompt]\033[0m({type(evaluation_prompt).__name__}) = \033[38;2;73;189;127m{evaluation_prompt}\033[0m')
 
     response_text = chat(
         messages=[
@@ -41,13 +41,13 @@ Return your evaluation in the following JSON format:
         temperature=0.2
     )
 
-    print(f' ==> [Line 37]: \033[38;2;24;247;188m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;243;132;71m{response_text}\033[0m')
+    #print(f' ==> [Line 37]: \033[38;2;24;247;188m[response_text]\033[0m({type(response_text).__name__}) = \033[38;2;243;132;71m{response_text}\033[0m')
     
     try:
         return json.loads(sanitize_json_string(response_text))
     except json.JSONDecodeError:
         print("⚠️ GPT response was not valid JSON:")
-        print(response_text)
+        #print(response_text)
         return {
             "is_correct": False,
             "corrected_answer": expected_answer,
