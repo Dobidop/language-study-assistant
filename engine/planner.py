@@ -30,30 +30,108 @@ def should_introduce_new_grammar(profile: dict) -> bool:
     grammar_summary = profile.get('grammar_summary', {})
     prefs = profile.get('learning_preferences', {})
     
-    # Get mastery thresholds from preferences
-    mastery_threshold = prefs.get('grammar_mastery_threshold', 0.75)
-    min_exposures = prefs.get('min_exposures_before_new', 5)
-    min_consecutive_correct = prefs.get('min_consecutive_correct', 3)
+    # Get mastery thresholds from preferences - STRICTER DEFAULTS
+    mastery_threshold = prefs.get('grammar_mastery_threshold', 0.85)  # Increased from 0.75
+    min_exposures = prefs.get('min_exposures_before_new', 8)  # Increased from 5
+    min_consecutive_correct = prefs.get('min_consecutive_correct', 5)  # Increased from 3
+    min_total_attempts = prefs.get('min_total_attempts_before_new', 10)  # NEW requirement
     mastery_focus = prefs.get('mastery_focus', True)
     
     if not grammar_summary:
         print("🎯 No grammar history - introducing first grammar point")
         return True  # First grammar point
     
-    if len(grammar_summary) < 2:
-        print("🎯 Less than 2 grammar points - still building foundation")
-        return True  # Still building foundation
+    # MUCH MORE CONSERVATIVE: Require mastery of existing grammar before adding new
+    if len(grammar_summary) == 1:
+        # For the very first grammar point, require SOLID mastery
+        first_grammar = list(grammar_summary.values())[0]
+        exposures = first_grammar.get('exposure', 0)
+        consecutive_correct = first_grammar.get('consecutive_correct', 0)
+        recent_accuracy = first_grammar.get('recent_accuracy', 0.0)
+        total_attempts = first_grammar.get('total_attempts', 0)
+        reps = first_grammar.get('reps', 0)
+        
+        is_mastered = (
+            exposures >= min_exposures and
+            consecutive_correct >= min_consecutive_correct and
+            recent_accuracy >= mastery_threshold and
+            total_attempts >= min_total_attempts and
+            reps >= 4  # Must have progressed through SRS levels
+        )
+        
+        if not is_mastered:
+            print(f"🚫 First grammar not mastered yet:")
+            print(f"   Exposures: {exposures}/{min_exposures}")
+            print(f"   Consecutive correct: {consecutive_correct}/{min_consecutive_correct}")
+            print(f"   Accuracy: {recent_accuracy:.1%}/{mastery_threshold:.1%}")
+            print(f"   Total attempts: {total_attempts}/{min_total_attempts}")
+            print(f"   SRS reps: {reps}/4")
+            return False
+        else:
+            print(f"✅ First grammar mastered - ready for second")
+            return True
+    
+    # For 2-4 grammar points: Require most to be well-mastered
+    if len(grammar_summary) <= 4:
+        mastered_count = 0
+        struggling_count = 0
+        
+        for gid, data in grammar_summary.items():
+            exposures = data.get('exposure', 0)
+            consecutive_correct = data.get('consecutive_correct', 0)
+            recent_accuracy = data.get('recent_accuracy', 0.0)
+            total_attempts = data.get('total_attempts', 0)
+            reps = data.get('reps', 0)
+            
+            # Define "mastered" very strictly
+            is_mastered = (
+                exposures >= min_exposures and
+                consecutive_correct >= min_consecutive_correct and
+                recent_accuracy >= mastery_threshold and
+                total_attempts >= min_total_attempts and
+                reps >= 3
+            )
+            
+            # Define "struggling" - needs immediate attention
+            is_struggling = (
+                recent_accuracy < 0.6 or
+                consecutive_correct == 0 and total_attempts >= 3 or
+                reps == 0 and total_attempts >= 5
+            )
+            
+            if is_mastered:
+                mastered_count += 1
+                print(f"   ✅ {gid}: mastered")
+            elif is_struggling:
+                struggling_count += 1
+                print(f"   ❌ {gid}: struggling (acc: {recent_accuracy:.1%}, streak: {consecutive_correct})")
+            else:
+                print(f"   🔄 {gid}: learning (acc: {recent_accuracy:.1%}, streak: {consecutive_correct})")
+        
+        # VERY strict requirements for early grammar
+        if struggling_count > 0:
+            print(f"🚫 BLOCKED: {struggling_count} grammar points are struggling")
+            return False
+        
+        # Require at least 75% to be mastered before adding new
+        mastery_rate = mastered_count / len(grammar_summary)
+        if mastery_rate < 0.75:
+            print(f"🚫 BLOCKED: Only {mastery_rate:.1%} mastered (need 75%)")
+            return False
+        
+        print(f"✅ APPROVED: {mastery_rate:.1%} mastered, ready for new grammar")
+        return True
     
     if not mastery_focus:
         print("🎯 Mastery focus disabled - allowing new grammar")
         return True  # User prefers speed over mastery
     
-    # Analyze current grammar points for readiness
+    # For 5+ grammar points: Use the existing more lenient logic
     struggling_count = 0
     learning_count = 0
     total_grammar = len(grammar_summary)
     
-    print(f"\n📊 Grammar Mastery Analysis:")
+    print(f"\n📊 Advanced Grammar Mastery Analysis:")
     print(f"   Total grammar points: {total_grammar}")
     print(f"   Mastery threshold: {mastery_threshold*100}%")
     print(f"   Min exposures required: {min_exposures}")
@@ -71,10 +149,11 @@ def should_introduce_new_grammar(profile: dict) -> bool:
         has_enough_reps = reps >= 3
         has_consecutive_correct = consecutive_correct >= min_consecutive_correct
         has_good_accuracy = recent_accuracy >= mastery_threshold
+        has_enough_attempts = total_attempts >= min_total_attempts
         
-        if not has_enough_exposure:
+        if not has_enough_exposure or not has_enough_attempts:
             struggling_count += 1
-            print(f"   ❌ {gid}: insufficient exposure ({exposures}/{min_exposures})")
+            print(f"   ❌ {gid}: insufficient practice ({exposures}/{min_exposures} exp, {total_attempts}/{min_total_attempts} att)")
         elif not has_enough_reps:
             learning_count += 1
             print(f"   🔄 {gid}: learning ({reps} reps, {consecutive_correct} streak)")
@@ -87,13 +166,13 @@ def should_introduce_new_grammar(profile: dict) -> bool:
         else:
             print(f"   ✅ {gid}: mastered ({reps} reps, {consecutive_correct} streak, {recent_accuracy:.1%} accuracy)")
     
-    # Decision logic based on struggling items
-    max_struggling = max(1, total_grammar // 3)  # Allow 1/3 of grammar to be struggling
-    max_total_unmastered = max(2, total_grammar // 2)  # Allow 1/2 to be unmastered
+    # More conservative decision logic for advanced learners
+    max_struggling = max(1, total_grammar // 4)  # Allow only 1/4 of grammar to be struggling (was 1/3)
+    max_total_unmastered = max(2, total_grammar // 3)  # Allow 1/3 to be unmastered (was 1/2)
     
     total_unmastered = struggling_count + learning_count
     
-    print(f"\n🎯 Mastery Gate Decision:")
+    print(f"\n🎯 Advanced Mastery Gate Decision:")
     print(f"   Struggling items: {struggling_count} (max allowed: {max_struggling})")
     print(f"   Learning items: {learning_count}")
     print(f"   Total unmastered: {total_unmastered} (max allowed: {max_total_unmastered})")
@@ -156,38 +235,47 @@ def get_grammar_readiness_priority(profile: dict) -> dict:
 def select_review_and_new_items(
     profile_path: str = None,
     curriculum_path: str = None,
-    vocab_data_path: str = None  # This parameter is now ignored but kept for compatibility
+    vocab_data_path: str = None
 ) -> dict:
     """
-    Selects SRS review items (grammar & vocab due), then new items within user preferences.
-    Now with MASTERY GATING to prevent overwhelming the learner.
-    
-    Returns dict with keys:
-      - 'review_grammar': list of grammar IDs due for review
-      - 'review_vocab': list of vocab words due for review
-      - 'new_grammar': list of new grammar IDs to introduce
-      - 'new_vocab': list of new vocab words to introduce
-      - 'grammar_priority': dict with priority levels
-      - 'mastery_gate_status': dict with gating information
+    MUCH MORE CONSERVATIVE selection with extended focus on mastery.
     """
     # Load data
     profile = load_user_profile(profile_path)
-    curriculum = load_curriculum()  # ignore path, use default
+    curriculum = load_curriculum()
 
-    # Preferences with defaults
+    # MUCH MORE CONSERVATIVE preferences with stricter defaults
     prefs = profile.get('learning_preferences', {})
-    reviews_per_session = prefs.get('reviews_per_session', 15)  # Increased from 10
-    new_grammar_per_session = prefs.get('new_grammar_per_session', 1)  # Reduced from 2
-    new_vocab_per_session = prefs.get('new_vocab_per_session', 3)     # Reduced from 5
+    reviews_per_session = prefs.get('reviews_per_session', 10)  # Reduced from 15
+    new_grammar_per_session = prefs.get('new_grammar_per_session', 1)  # Keep at 1 
+    new_vocab_per_session = prefs.get('new_vocab_per_session', 2)      # Reduced from 3
+    
+    # NEW: Session intensity control
+    max_new_items_per_session = prefs.get('max_new_items_per_session', 1)  # Limit total new learning
+    focus_sessions_required = prefs.get('focus_sessions_required', 3)       # Sessions before adding new content
 
     today = datetime.now().date().isoformat()
 
-    print(f"\n📋 Session Planning - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print(f"\n📋 CONSERVATIVE Session Planning - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print(f"   Review capacity: {reviews_per_session}")
     print(f"   New grammar limit: {new_grammar_per_session}")
     print(f"   New vocab limit: {new_vocab_per_session}")
+    print(f"   Max new items total: {max_new_items_per_session}")
 
-    # 1. Grammar Priority Analysis
+    # Check if this is a "consolidation session" (no new content)
+    session_count = profile.get('session_tracking', {}).get('exercises_completed', 0)
+    last_new_content_session = profile.get('_last_new_content_session', 0)
+    sessions_since_new = session_count - last_new_content_session
+    
+    is_consolidation_session = sessions_since_new < focus_sessions_required
+    
+    if is_consolidation_session:
+        print(f"🔒 CONSOLIDATION SESSION: {sessions_since_new}/{focus_sessions_required} focus sessions completed")
+        new_grammar_per_session = 0
+        new_vocab_per_session = 0
+        max_new_items_per_session = 0
+
+    # 1. Grammar Priority Analysis (same as before)
     grammar_priority = get_grammar_readiness_priority(profile)
     
     print(f"\n📊 Grammar Priority Analysis:")
@@ -195,86 +283,84 @@ def select_review_and_new_items(
     print(f"   Regular review: {len(grammar_priority['regular_review'])} items")
     print(f"   Maintenance: {len(grammar_priority['maintenance'])} items")
 
-    # 2. Select review grammar with priority
-    all_due_grammar = grammar_priority['urgent_review'] + grammar_priority['regular_review']
-    
-    # Always prioritize urgent items
+    # 2. Prioritize urgent items even more strongly
     review_grammar = grammar_priority['urgent_review'][:reviews_per_session]
     remaining_slots = reviews_per_session - len(review_grammar)
+    
+    # If we have urgent items, reduce new content allowance
+    if grammar_priority['urgent_review']:
+        max_new_items_per_session = 0  # No new content when struggling
+        print(f"🚨 Urgent items detected - blocking all new content")
     
     if remaining_slots > 0:
         review_grammar.extend(grammar_priority['regular_review'][:remaining_slots])
 
     print(f"   Selected for review: {len(review_grammar)} grammar points")
-    if grammar_priority['urgent_review']:
-        print(f"     Urgent items: {grammar_priority['urgent_review']}")
 
-    # 3. Review due vocab (same as before)
+    # 3. Review due vocab (more conservative)
     vocab_summary = profile.get('vocab_summary', {})
     due_vocab = [w for w, data in vocab_summary.items()
                  if data.get('next_review_date', '') <= today]
     due_vocab.sort(key=lambda w: vocab_summary[w]['next_review_date'])
-    review_vocab = due_vocab[:reviews_per_session]
+    review_vocab = due_vocab[:reviews_per_session//2]  # Halve vocab reviews to focus on grammar
 
-    # 4. NEW GRAMMAR WITH MASTERY GATING
-    mastery_gate_approved = should_introduce_new_grammar(profile)
-    
-    if mastery_gate_approved:
-        # Get new grammar from curriculum
-        user_level = profile.get('user_level', 'beginner')
-        level_points = [pt for pt in curriculum.get('grammar_points', []) if pt.get('level') == user_level]
+    # 4. NEW GRAMMAR WITH MUCH STRICTER MASTERY GATING
+    new_grammar = []
+    if max_new_items_per_session > 0:
+        mastery_gate_approved = should_introduce_new_grammar(profile)
         
-        # Filter out seen grammar using normalized IDs
-        grammar_summary = profile.get('grammar_summary', {})
-        seen = {normalize_grammar_id(gid) for gid in grammar_summary.keys()}
-        unseen = [pt for pt in level_points if normalize_grammar_id(pt['id']) not in seen]
-        unseen.sort(key=lambda x: x.get('learning_order', float('inf')))
-        
-        new_grammar = [pt['id'] for pt in unseen[:new_grammar_per_session]]
-        
-        if new_grammar:
-            print(f"   ✅ New grammar approved: {new_grammar}")
+        if mastery_gate_approved:
+            user_level = profile.get('user_level', 'beginner')
+            level_points = [pt for pt in curriculum.get('grammar_points', []) if pt.get('level') == user_level]
+            
+            grammar_summary = profile.get('grammar_summary', {})
+            seen = {normalize_grammar_id(gid) for gid in grammar_summary.keys()}
+            unseen = [pt for pt in level_points if normalize_grammar_id(pt['id']) not in seen]
+            unseen.sort(key=lambda x: x.get('learning_order', float('inf')))
+            
+            # Respect the max new items limit
+            allowed_new_grammar = min(new_grammar_per_session, max_new_items_per_session)
+            new_grammar = [pt['id'] for pt in unseen[:allowed_new_grammar]]
+            
+            if new_grammar:
+                print(f"   ✅ New grammar approved: {new_grammar}")
+                # Track that we added new content
+                profile['_last_new_content_session'] = session_count
+            else:
+                print(f"   ℹ️  No new grammar available at current level")
         else:
-            print(f"   ℹ️  No new grammar available at current level")
-    else:
-        new_grammar = []
-        print(f"   🚫 New grammar blocked by mastery gate")
+            new_grammar = []
+            print(f"   🚫 New grammar blocked by mastery gate")
 
-    # 5. New vocab: Use vocabulary manager to get level-appropriate words
-    seen_vocab = set(profile.get('vocab_summary', {}).keys())
-    user_level = profile.get('user_level', 'beginner')
-    
-    # Get new vocabulary suggestions using the vocabulary manager
-    new_vocab = vocab_manager.get_words_for_level(
-        user_level=user_level,
-        known_words=seen_vocab,
-        limit=new_vocab_per_session * 2  # Get more candidates
-    )
-    
-    # If we don't have enough level-appropriate words, supplement with high-frequency words
-    if len(new_vocab) < new_vocab_per_session:
-        additional_words = vocab_manager.get_new_words_for_user(
-            known_words=seen_vocab.union(set(new_vocab)),
-            limit=new_vocab_per_session,
-            prefer_frequent=True
-        )
-        new_vocab.extend(additional_words)
-    
-    # Limit to requested amount
-    new_vocab = new_vocab[:new_vocab_per_session]
-    
-    # Debug output for vocabulary selection
-    print(f"\n📚 Vocabulary Selection:")
-    print(f"   Known words: {len(seen_vocab)}")
-    print(f"   New vocab selected: {len(new_vocab)} - {new_vocab}")
-    
-    # Mastery gate status for reporting
+    # 5. New vocab (much more conservative)
+    new_vocab = []
+    if max_new_items_per_session > 0 and len(new_grammar) < max_new_items_per_session:
+        seen_vocab = set(profile.get('vocab_summary', {}).keys())
+        user_level = profile.get('user_level', 'beginner')
+        
+        # Drastically limit new vocabulary when grammar is being learned
+        remaining_new_slots = max_new_items_per_session - len(new_grammar)
+        actual_new_vocab_limit = min(new_vocab_per_session, remaining_new_slots)
+        
+        if actual_new_vocab_limit > 0:
+            new_vocab = vocab_manager.get_words_for_level(
+                user_level=user_level,
+                known_words=seen_vocab,
+                limit=actual_new_vocab_limit
+            )
+            
+            if new_vocab:
+                print(f"   📚 New vocab approved: {new_vocab}")
+                profile['_last_new_content_session'] = session_count
+        
+    # Enhanced mastery gate status
     mastery_gate_status = {
-        'approved': mastery_gate_approved,
+        'approved': len(new_grammar) > 0 or len(new_vocab) > 0,
         'grammar_priority': grammar_priority,
-        'total_grammar_points': len(profile.get('grammar_summary', {})),
-        'urgent_count': len(grammar_priority['urgent_review']),
-        'struggling_threshold': 'Based on accuracy and consistency metrics'
+        'is_consolidation_session': is_consolidation_session,
+        'sessions_since_new': sessions_since_new,
+        'urgent_items_blocking': len(grammar_priority['urgent_review']) > 0,
+        'max_new_items_enforced': max_new_items_per_session
     }
 
     result = {
@@ -286,15 +372,14 @@ def select_review_and_new_items(
         'mastery_gate_status': mastery_gate_status
     }
 
-    print(f"\n📋 Final Selection Summary:")
+    print(f"\n📋 CONSERVATIVE Final Selection:")
     print(f"   Review Grammar: {len(review_grammar)} items")
     print(f"   Review Vocab: {len(review_vocab)} items")
     print(f"   New Grammar: {len(new_grammar)} items {'✅' if new_grammar else '🚫'}")
     print(f"   New Vocab: {len(new_vocab)} items")
-    print(f"   Mastery Gate: {'✅ Approved' if mastery_gate_approved else '🚫 Blocked'}")
-
+    print(f"   Session Type: {'🔒 Consolidation' if is_consolidation_session else '📚 Learning'}")
+    
     return result
-
 
 # Backward compatibility function - now uses vocabulary manager
 def load_vocab_data(path: str = None) -> dict:

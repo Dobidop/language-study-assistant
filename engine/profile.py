@@ -8,13 +8,17 @@ import sys
 import os
 from pathlib import Path
 
-# Constants for SM-2 algorithm - MORE CONSERVATIVE
+# Constants for MUCH MORE CONSERVATIVE SM-2 algorithm
 MIN_EASE_FACTOR = 1.3
-INITIAL_EASE = 2.5
-# More conservative intervals with additional early steps
-INITIAL_INTERVALS = [1, 2, 4, 8]  # Extended from [1, 6] to have more repetition early on
-MAX_INTERVAL = 120  # Reduced from 180 to 120 days (4 months max)
-MAX_EASE_FACTOR = 2.8  # Reduced from 3.0 to prevent too-rapid advancement
+INITIAL_EASE = 2.3  # Reduced from 2.5
+# MUCH more conservative intervals with more repetition in early stages
+INITIAL_INTERVALS = [1, 1, 2, 3, 5, 8]  # Extended with more early repetition
+MAX_INTERVAL = 60  # Reduced from 120 to 60 days (2 months max)
+MAX_EASE_FACTOR = 2.5  # Reduced from 2.8 to prevent rapid advancement
+
+# NEW: Failure recovery settings
+FAILURE_RESET_STEPS = 2  # How many steps back on failure (was 1)
+MIN_SUCCESS_STREAK = 3   # Minimum successes before advancing (was implicit)
 
 DEFAULT_PROFILE = {
   "user_id": "user_001",
@@ -32,18 +36,20 @@ DEFAULT_PROFILE = {
   },
   "learning_preferences": {
     "preferred_formality": "polite informal",
-    "max_new_words_per_session": 2,
+    "max_new_words_per_session": 1,  # Reduced from 2
     "preferred_exercise_types": ["fill_in_blank", "translation"],
     "prefers_korean_prompts": False,
     "allow_open_tasks": True,
-    "reviews_per_session": 15,  # Increased from 10
-    "new_grammar_per_session": 1,  # Reduced from 2
-    "new_vocab_per_session": 3,   # Reduced from 5
-    # NEW: Mastery-related preferences
-    "grammar_mastery_threshold": 0.75,  # 75% accuracy needed for mastery
-    "min_exposures_before_new": 5,      # Minimum exposures before introducing new grammar
-    "min_consecutive_correct": 3,       # Consecutive correct answers needed
-    "mastery_focus": True               # Prioritize mastery over speed
+    "reviews_per_session": 12,  # Reduced from 15
+    "new_grammar_per_session": 1,  # Keep at 1, but with stricter gating
+    "new_vocab_per_session": 2,   # Reduced from 3
+    # ENHANCED: Stricter mastery-related preferences
+    "grammar_mastery_threshold": 0.85,  # Increased from 0.75
+    "min_exposures_before_new": 8,      # Increased from 5
+    "min_consecutive_correct": 5,       # Increased from 3
+    "min_total_attempts_before_new": 10, # NEW: Minimum attempts before considering mastery
+    "mastery_focus": True,               # Prioritize mastery over speed
+    "require_deep_practice": True        # NEW: Require extended practice
   },
   "grammar_summary": {},
   "vocab_summary": {}
@@ -138,14 +144,14 @@ def migrate_grammar_profile_data(profile: dict) -> tuple:
 
 def _apply_sm2(item: dict, correct: bool) -> None:
     """
-    Applies a MORE CONSERVATIVE SM-2 update to a single item (grammar or vocab).
-    Mutates item in-place to update interval, ease_factor, srs_level, lapses, next_review_date.
+    Applies a MUCH MORE CONSERVATIVE SM-2 update to a single item.
     
-    Changes from original:
-    - More conservative intervals: [1, 2, 4, 8] instead of [1, 6]
-    - Smaller ease factor adjustments
-    - Track consecutive correct answers
-    - Slower progression to prevent rushing
+    Key changes:
+    - Extended initial intervals with more early repetition
+    - Slower ease factor progression  
+    - Stricter failure penalties
+    - Required success streaks before advancing
+    - More gradual interval growth
     """
     today = datetime.now().date()
 
@@ -154,9 +160,10 @@ def _apply_sm2(item: dict, correct: bool) -> None:
     item.setdefault('interval', INITIAL_INTERVALS[0])
     item.setdefault('reps', 0)
     item.setdefault('lapses', 0)
-    item.setdefault('consecutive_correct', 0)  # NEW: Track consecutive correct
-    item.setdefault('total_attempts', 0)      # NEW: Track total attempts
-    item.setdefault('recent_accuracy', 0.0)   # NEW: Track recent performance
+    item.setdefault('consecutive_correct', 0)
+    item.setdefault('total_attempts', 0)
+    item.setdefault('recent_accuracy', 0.0)
+    item.setdefault('success_streak', 0)  # NEW: Track current success streak
 
     # Update tracking metrics
     item['total_attempts'] += 1
@@ -166,55 +173,93 @@ def _apply_sm2(item: dict, correct: bool) -> None:
 
     if correct:
         item['consecutive_correct'] += 1
+        item['success_streak'] += 1
     else:
         item['consecutive_correct'] = 0
+        item['success_streak'] = 0
 
-    # Calculate recent accuracy (simple moving average of last 10 attempts)
-    if item['total_attempts'] > 0:
-        # Simplified accuracy calculation - in a real system you'd track recent attempts
-        item['recent_accuracy'] = min(1.0, item.get('consecutive_correct', 0) / min(item['total_attempts'], 10))
+    # Calculate recent accuracy (weighted toward recent performance)
+    total_attempts = item['total_attempts']
+    if total_attempts > 0:
+        # Simple accuracy based on consecutive correct vs recent attempts
+        recent_window = min(total_attempts, 8)
+        item['recent_accuracy'] = min(1.0, item['consecutive_correct'] / recent_window)
 
     if quality < 3:
-        # Failure: reset repetitions but less harshly
-        item['reps'] = max(0, item['reps'] - 1)  # Only go back one step, don't reset to 0
-        item['interval'] = INITIAL_INTERVALS[0]
+        # FAILURE: More conservative penalty
+        old_reps = item['reps']
+        
+        # Reset back multiple steps, but not below 0
+        item['reps'] = max(0, item['reps'] - FAILURE_RESET_STEPS)
         item['lapses'] += 1
-        # Smaller ease factor penalty
-        item['ease_factor'] = max(
-            MIN_EASE_FACTOR,
-            item['ease_factor'] - 0.15  # Reduced from 0.2 to 0.15
-        )
-        print(f"📉 Grammar item failed - reps: {item['reps']}, interval: {item['interval']} days")
-    else:
-        # Success: increment repetitions more conservatively
-        item['reps'] += 1
         
-        # Use extended initial intervals
-        if item['reps'] <= len(INITIAL_INTERVALS):
-            item['interval'] = INITIAL_INTERVALS[item['reps'] - 1]
-            print(f"📈 Grammar item success - using fixed interval: {item['interval']} days (rep {item['reps']})")
+        # Reset to appropriate interval for the new rep level
+        if item['reps'] < len(INITIAL_INTERVALS):
+            item['interval'] = INITIAL_INTERVALS[item['reps']]
         else:
-            # From 5th repetition on, use ease factor but more conservatively
-            # Apply a "brake" to prevent too-rapid advancement
-            conservative_ease = min(item['ease_factor'], 2.2)  # Cap the ease factor
-            new_interval = round(item['interval'] * conservative_ease)
-            
-            # Additional conservative constraint: never more than double the previous interval
-            max_growth = item['interval'] * 2
-            item['interval'] = min(new_interval, max_growth, MAX_INTERVAL)
-            print(f"📈 Grammar item success - calculated interval: {item['interval']} days (ease: {conservative_ease:.2f})")
+            item['interval'] = INITIAL_INTERVALS[0]  # Back to start for safety
         
-        # Smaller ease factor adjustments
-        delta = (0.05 - (5 - quality) * (0.04 + (5 - quality) * 0.01))  # Reduced deltas
-        new_ease = item['ease_factor'] + delta
-        item['ease_factor'] = max(MIN_EASE_FACTOR, min(new_ease, MAX_EASE_FACTOR))
+        # Larger ease factor penalty for repeated failures
+        penalty = 0.2 if item['lapses'] <= 2 else 0.25
+        item['ease_factor'] = max(MIN_EASE_FACTOR, item['ease_factor'] - penalty)
+        
+        print(f"📉 FAILURE - reps: {old_reps}→{item['reps']}, interval: {item['interval']}d, lapses: {item['lapses']}")
+        
+    else:
+        # SUCCESS: But require consistency before advancing
+        
+        # Check if we have enough consecutive successes to advance
+        min_streak_required = MIN_SUCCESS_STREAK
+        
+        # For early stages, require longer streaks
+        if item['reps'] < 3:
+            min_streak_required = 4
+        elif item['reps'] < 5:
+            min_streak_required = 3
+        
+        if item['success_streak'] >= min_streak_required:
+            # Advance to next level
+            item['reps'] += 1
+            
+            # Use extended initial intervals
+            if item['reps'] <= len(INITIAL_INTERVALS):
+                item['interval'] = INITIAL_INTERVALS[item['reps'] - 1]
+                print(f"📈 SUCCESS (streak: {item['success_streak']}) - fixed interval: {item['interval']}d (rep {item['reps']})")
+            else:
+                # From 7th repetition on, use ease factor but VERY conservatively
+                # Apply strong "brake" to prevent too-rapid advancement
+                very_conservative_ease = min(item['ease_factor'], 2.0)  # Strong cap
+                base_interval = INITIAL_INTERVALS[-1]  # Start from last fixed interval
+                
+                # Calculate growth more conservatively
+                growth_factor = 1 + (very_conservative_ease - 1) * 0.5  # Halve the growth
+                new_interval = round(base_interval * growth_factor)
+                
+                # Additional conservative constraints
+                max_growth = item['interval'] * 1.5  # Never more than 50% growth
+                item['interval'] = min(new_interval, max_growth, MAX_INTERVAL)
+                
+                print(f"📈 SUCCESS (streak: {item['success_streak']}) - calculated interval: {item['interval']}d (ease: {very_conservative_ease:.2f})")
+            
+            # Very small ease factor adjustments
+            if item['reps'] > 2:  # Only adjust ease after some repetitions
+                delta = (0.03 - (5 - quality) * (0.02 + (5 - quality) * 0.005))  # Much smaller deltas
+                new_ease = item['ease_factor'] + delta
+                item['ease_factor'] = max(MIN_EASE_FACTOR, min(new_ease, MAX_EASE_FACTOR))
+            
+            # Reset success streak after advancement
+            item['success_streak'] = 0
+            
+        else:
+            # Success but not enough streak - repeat current level
+            print(f"🔄 SUCCESS but streak too short ({item['success_streak']}/{min_streak_required}) - repeating interval: {item['interval']}d")
+            # Keep same interval and reps level for more practice
 
     item['srs_level'] = item['reps']
     # Schedule next review
     item['next_review_date'] = (today + timedelta(days=item['interval'])).isoformat()
     
-    print(f"🔄 SRS Update: reps={item['reps']}, interval={item['interval']}d, ease={item['ease_factor']:.2f}, next={item['next_review_date']}")
-
+    print(f"🔄 SRS Update: reps={item['reps']}, interval={item['interval']}d, ease={item['ease_factor']:.2f}, next={item['next_review_date']}, streak={item['success_streak']}")
 
 def fix_corrupted_srs_data(profile: dict) -> dict:
     """
@@ -370,20 +415,19 @@ def update_user_profile(profile: dict, session_exercises: list) -> dict:
 
 def calculate_mastery_level(grammar_data: dict) -> str:
     """
-    Calculate the mastery level of a grammar point based on various metrics.
-    
-    Returns: "new", "learning", "reviewing", "mastered"
+    Calculate mastery level with STRICTER requirements.
     """
     reps = grammar_data.get('reps', 0)
     exposures = grammar_data.get('exposure', 0)
     consecutive_correct = grammar_data.get('consecutive_correct', 0)
     recent_accuracy = grammar_data.get('recent_accuracy', 0.0)
+    total_attempts = grammar_data.get('total_attempts', 0)
     
     if exposures == 0:
         return "new"
-    elif reps < 3 or consecutive_correct < 2:
+    elif reps < 4 or consecutive_correct < 4 or total_attempts < 8:  # Stricter requirements
         return "learning"
-    elif reps < 5 or recent_accuracy < 0.75:
+    elif reps < 6 or recent_accuracy < 0.8 or consecutive_correct < 5:  # Higher bar for reviewing
         return "reviewing"
     else:
         return "mastered"
