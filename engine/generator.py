@@ -6,6 +6,11 @@ from engine.planner import select_review_and_new_items
 from engine.utils import normalize_grammar_id, sanitize_json_string
 from engine.exercise_types import ExerciseTypeFactory, ExerciseConfig, generate_exercise_with_type
 from engine.vocab_manager import get_vocab_manager  # NEW: Use centralized vocab manager
+from engine.difficulty_system import (
+    DifficultyProgressionManager, 
+    ExerciseDifficulty,
+    integrate_with_exercise_generator
+)
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -339,10 +344,11 @@ def generate_exercise(user_profile: dict,
 def generate_exercise_auto(
     profile_path: str = None,
     recent_exercises: list = None,
-    exercise_type: str = "fill_in_blank"
+    exercise_type: str = "auto"  # Changed default to "auto"
 ) -> dict:
     """
-    Selects grammar and vocabulary via SRS planner, then delegates to generate_exercise.
+    Enhanced version with difficulty progression.
+    If exercise_type is "auto", selects based on difficulty progression.
     """
     profile = load_user_profile(profile_path)
     selections = select_review_and_new_items(profile_path=profile_path)
@@ -351,8 +357,6 @@ def generate_exercise_auto(
     print(f"📋 Grammar Selection Debug:")
     print(f"  Review grammar: {selections['review_grammar']}")
     print(f"  New grammar: {selections['new_grammar']}")
-    print(f"  Review vocab: {len(selections['review_vocab'])} words")
-    print(f"  New vocab: {len(selections['new_vocab'])} words")
     
     grammar_targets = [normalize_grammar_id(g) for g in
                        selections['review_grammar'] + selections['new_grammar']]
@@ -363,7 +367,27 @@ def generate_exercise_auto(
     
     print(f"🎯 Final grammar targets: {grammar_targets}")
     
-    return generate_exercise(profile, grammar_targets, recent_exercises, exercise_type)
+    # NEW: Integrate difficulty progression
+    if exercise_type == "auto":
+        selected_exercise_type, difficulty_level = integrate_with_exercise_generator(
+            profile, grammar_targets
+        )
+        print(f"🎮 Difficulty system selected: {selected_exercise_type} ({difficulty_level.name})")
+        exercise_type = selected_exercise_type
+    else:
+        # Manual override - user specified exercise type
+        difficulty_level = ExerciseDifficulty.from_exercise_type(exercise_type)
+        print(f"👤 User selected: {exercise_type} ({difficulty_level.name})")
+    
+    # Generate exercise with the selected type
+    result = generate_exercise(profile, grammar_targets, recent_exercises, exercise_type)
+    
+    # Add difficulty information to the result
+    if result and not result.get('error'):
+        result['difficulty_level'] = difficulty_level.name
+        result['difficulty_value'] = difficulty_level.value
+    
+    return result
 
 
 def get_exercise_type_info() -> dict:
@@ -416,3 +440,40 @@ if __name__ == '__main__':
             print(f"❌ {ex_type}: {e}")
     
     print(f"\n📋 Available exercise types: {get_exercise_type_info()}")
+
+def get_difficulty_info(profile_path: str = None) -> dict:
+    """
+    Get difficulty progression information for the dashboard.
+    """
+    profile = load_user_profile(profile_path)
+    manager = DifficultyProgressionManager()
+    
+    # Get all grammar points with difficulty info
+    grammar_summary = profile.get('grammar_summary', {})
+    difficulty_info = {}
+    
+    for grammar_id in grammar_summary.keys():
+        summary = manager.get_difficulty_summary(profile, grammar_id)
+        difficulty_info[grammar_id] = summary
+    
+    # Overall statistics
+    total_grammar = len(grammar_summary)
+    unlocked_difficulties = set()
+    mastered_difficulties = set()
+    
+    for grammar_id, info in difficulty_info.items():
+        for diff_name, mastery in info['mastery_by_difficulty'].items():
+            if mastery['reps'] > 0:  # Has been attempted
+                unlocked_difficulties.add(diff_name)
+            if mastery['is_mastered']:
+                mastered_difficulties.add(diff_name)
+    
+    return {
+        'grammar_difficulty_details': difficulty_info,
+        'overall_stats': {
+            'total_grammar_points': total_grammar,
+            'unlocked_difficulty_types': list(unlocked_difficulties),
+            'mastered_difficulty_types': list(mastered_difficulties),
+            'progression_percentage': len(mastered_difficulties) / 4 * 100 if unlocked_difficulties else 0
+        }
+    }

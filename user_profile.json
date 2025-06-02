@@ -33,35 +33,279 @@
   },
   "grammar_summary": {
     "-이에요_예요": {
-      "exposure": 3,
+      "exposure": 40,
+      "reps": 6,
+      "ease_factor": 1.5499999999999998,
+      "interval": 8,
+      "lapses": 4,
+      "consecutive_correct": 18,
+      "total_attempts": 40,
+      "recent_accuracy": 1.0,
+      "first_seen": "2025-06-02",
+      "last_reviewed": "2025-06-02",
+      "success_streak": 1,
+      "srs_level": 6,
+      "next_review_date": "2025-06-10"
+    },
+    "-아요_어요": {
+      "exposure": 4,
+      "reps": 1,
+      "ease_factor": 2.3,
+      "interval": 1,
+      "lapses": 0,
+      "consecutive_correct": 4,
+      "total_attempts": 4,
+      "recent_accuracy": 1.0,
+      "first_seen": "2025-06-02",
+      "last_reviewed": "2025-06-02",
+      "success_streak": 0,
+      "srs_level": 1,
+      "next_review_date": "2025-06-03"
+    },
+    "-subject_particle_이_가_vs_topic_particle_은_는": {
+      "exposure": 33,
+      "reps": 3,
+      "ease_factor": 1.7399999999999998,
+      "interval": 2,
+      "lapses": 3,
+      "consecutive_correct": 4,
+      "total_attempts": 33,
+      "recent_accuracy": 0.5,
+      "first_seen": "2025-06-02",
+      "last_reviewed": "2025-06-02",
+      "success_streak": 0,
+      "srs_level": 3,
+      "next_review_date": "2025-06-04"
+    },
+    "-topic_particle_usage_after_vowels_and_consonants": {
+      "exposure": 17,
+      "reps": 4,
+      "ease_factor": 2.1599999999999993,
+      "interval": 3,
+      "lapses": 1,
+      "consecutive_correct": 16,
+      "total_attempts": 17,
+      "recent_accuracy": 1.0,
+      "first_seen": "2025-06-02",
+      "last_reviewed": "2025-06-02",
+      "success_streak": 1,
+      "srs_level": 4,
+      "next_review_date": "2025-06-05"
+    },
+    "-location_particle_에": {
+      "exposure": 1,
       "reps": 0,
       "ease_factor": 2.0999999999999996,
       "interval": 1,
       "lapses": 1,
-      "consecutive_correct": 1,
-      "total_attempts": 3,
-      "recent_accuracy": 0.3333333333333333,
+      "consecutive_correct": 0,
+      "total_attempts": 1,
+      "recent_accuracy": 0.0,
       "first_seen": "2025-06-02",
       "last_reviewed": "2025-06-02",
-      "success_streak": 1,
+      "success_streak": 0,
       "srs_level": 0,
       "next_review_date": "2025-06-03"
     },
-    "-아요_어요": {
-      "exposure": 2,
+    "-아요_어요_polite_present_tense_ending": {
+      "exposure": 1,
       "reps": 0,
-      "ease_factor": 2.3,
+      "ease_factor": 2.0999999999999996,
       "interval": 1,
-      "lapses": 0,
-      "consecutive_correct": 2,
-      "total_attempts": 2,
-      "recent_accuracy": 1.0,
+      "lapses": 1,
+      "consecutive_correct": 0,
+      "total_attempts": 1,
+      "recent_accuracy": 0.0,
       "first_seen": "2025-06-02",
       "last_reviewed": "2025-06-02",
-      "success_streak": 2,
+      "success_streak": 0,
       "srs_level": 0,
       "next_review_date": "2025-06-03"
     }
   },
-  "vocab_summary": {}
+  "vocab_summary": {},
+  "grammar_difficulty_progress": {
+    "-이에요_예요": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 24,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 1,
+          "consecutive_correct": 10,
+          "total_attempts": 25,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-26",
+          "mastery_date": "2025-06-02"
+        },
+        "1": {
+          "reps": 8,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 8,
+          "total_attempts": 8,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-10",
+          "mastery_date": "2025-06-02"
+        }
+      }
+    },
+    "-subject_particle_이_가_vs_topic_particle_은_는": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 25,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 2,
+          "consecutive_correct": 2,
+          "total_attempts": 27,
+          "recent_accuracy": 0.25,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-27",
+          "mastery_date": "2025-06-02"
+        }
+      }
+    },
+    "-topic_particle_usage_after_vowels_and_consonants": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 8,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 1,
+          "consecutive_correct": 8,
+          "total_attempts": 9,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-10",
+          "mastery_date": "2025-06-02"
+        },
+        "1": {
+          "reps": 8,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 8,
+          "total_attempts": 8,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-10",
+          "mastery_date": "2025-06-02"
+        }
+      }
+    },
+    "subject_particle_이_가_vs_topic_particle_은_는": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 5,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 5,
+          "total_attempts": 5,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-07",
+          "mastery_date": "2025-06-02"
+        }
+      }
+    },
+    "-location_particle_에": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 0,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 1,
+          "consecutive_correct": 0,
+          "total_attempts": 1,
+          "recent_accuracy": 0.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-03"
+        }
+      }
+    },
+    "-아요_어요_polite_present_tense_ending": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 0,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 1,
+          "consecutive_correct": 0,
+          "total_attempts": 1,
+          "recent_accuracy": 0.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-03"
+        }
+      }
+    },
+    "-아요_어요": {
+      "current_max_difficulty": 1,
+      "unlocked_difficulties": [
+        1
+      ],
+      "difficulty_mastery": {
+        "2": {
+          "reps": 1,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 1,
+          "total_attempts": 1,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-03"
+        },
+        "1": {
+          "reps": 1,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 1,
+          "total_attempts": 1,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-02",
+          "last_reviewed": "2025-06-02",
+          "next_review_date": "2025-06-03"
+        }
+      }
+    }
+  }
 }

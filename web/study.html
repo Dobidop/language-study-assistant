@@ -288,6 +288,8 @@
 </div>
 
 <script>
+let isAutoMode = false;
+let recommendedExerciseType = null;
 let currentExerciseId = null;
 let sessionActive = false;
 let exercisesCompleted = 0;
@@ -380,12 +382,84 @@ document.getElementById("clearAnswerBtn").addEventListener("click", clearAnswer)
 
 // Add event listener for exercise type changes during session
 document.getElementById("exerciseType").addEventListener("change", function() {
-  if (sessionActive) {
-    console.log(`🔄 Exercise type changed to: ${this.value}`);
-    // You can optionally fetch a new exercise immediately when type changes
-    // fetchNewExercise();
+  if (sessionActive && !isAutoMode) {
+    console.log(`🔄 Exercise type manually changed to: ${this.value}`);
+    // User can fetch new exercise immediately when type changes in manual mode
+  } else if (isAutoMode) {
+    console.log("🚫 Exercise type changes disabled in auto mode");
+    // Optionally show a message that auto mode is controlling exercise selection
   }
 });
+
+function addAutoModeControls() {
+  if (!isAutoMode) return;
+  
+  const controlsDiv = document.createElement("div");
+  controlsDiv.id = "autoModeControls";
+  controlsDiv.style.cssText = `
+    text-align: center;
+    margin: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  `;
+  
+  controlsDiv.innerHTML = `
+    <p style="margin: 0.5rem 0; color: #6c757d;">
+      Auto mode is selecting exercises based on your progress.
+    </p>
+    <button onclick="temporaryManualOverride()" style="
+      padding: 0.5rem 1rem;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    ">
+      🎯 Override Next Exercise
+    </button>
+  `;
+  
+  const exerciseDiv = document.getElementById("exercise");
+  exerciseDiv.appendChild(controlsDiv);
+}
+
+function temporaryManualOverride() {
+  if (!isAutoMode) return;
+  
+  const exerciseType = prompt(
+    "Select exercise type for next exercise only:\n" +
+    "1. fill_in_blank\n" +
+    "2. multiple_choice\n" +
+    "3. fill_multiple_blanks\n" +
+    "4. error_correction\n" +
+    "5. sentence_building\n" +
+    "6. translation\n\n" +
+    "Enter the exercise type:"
+  );
+  
+  const validTypes = [
+    "fill_in_blank", "multiple_choice", "fill_multiple_blanks",
+    "error_correction", "sentence_building", "translation"
+  ];
+  
+  if (exerciseType && validTypes.includes(exerciseType)) {
+    console.log(`👤 Manual override: ${exerciseType}`);
+    
+    // Temporarily disable auto mode for one exercise
+    const wasAutoMode = isAutoMode;
+    isAutoMode = false;
+    document.getElementById("exerciseType").value = exerciseType;
+    
+    fetchNewExercise().then(() => {
+      // Re-enable auto mode after this exercise
+      isAutoMode = wasAutoMode;
+      console.log("🤖 Auto mode re-enabled after manual override");
+    });
+  }
+}
 
 // Handle Enter key for text inputs
 document.getElementById("userAnswer").addEventListener("keypress", function(event) {
@@ -415,10 +489,36 @@ async function startSession() {
     document.getElementById("endSessionBtn").disabled = false;
     document.getElementById("exercise").style.display = "block";
     
-    // Keep exercise type dropdown enabled during session and show new exercise button
-    document.getElementById("exerciseType").disabled = false;
-    document.getElementById("newExerciseBtn").style.display = "inline-block";
-    console.log(`🎬 Session started. Exercise type selector remains enabled.`);
+    // Check if auto mode is enabled
+    const params = new URLSearchParams(window.location.search);
+    const selectedType = params.get("type") || document.getElementById("exerciseType").value;
+    
+    if (selectedType === "auto") {
+      isAutoMode = true;
+      document.getElementById("exerciseType").disabled = true; // Disable manual selection in auto mode
+      document.getElementById("newExerciseBtn").style.display = "none"; // Hide manual new exercise button
+      console.log("🤖 Auto mode enabled - AI will select exercise types");
+      
+      // Show auto mode indicator
+      const modeIndicator = document.createElement("div");
+      modeIndicator.id = "autoModeIndicator";
+      modeIndicator.style.cssText = `
+        text-align: center;
+        padding: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 4px;
+        margin: 1rem 0;
+        font-weight: bold;
+      `;
+      modeIndicator.textContent = "🤖 Auto Mode Active - AI is selecting optimal exercise types";
+      document.getElementById("exercise").insertBefore(modeIndicator, document.getElementById("exercise").firstChild);
+    } else {
+      isAutoMode = false;
+      document.getElementById("exerciseType").disabled = false;
+      document.getElementById("newExerciseBtn").style.display = "inline-block";
+      console.log(`👤 Manual mode: User selected ${selectedType}`);
+    }
     
     fetchNewExercise();
   } else {
@@ -505,10 +605,41 @@ function showInputForExerciseType(exerciseType) {
 async function fetchNewExercise() {
   if (!sessionActive) return;
 
-  const type = document.getElementById("exerciseType").value;
+  let type;
+  
+  if (isAutoMode) {
+    // Get recommendation from the server
+    try {
+      console.log("🤖 Auto mode: Getting exercise recommendation...");
+      const recResponse = await fetch("/api/exercise/recommended");
+      if (recResponse.ok) {
+        const recData = await recResponse.json();
+        type = recData.recommended_exercise_type;
+        recommendedExerciseType = type;
+        
+        console.log(`🎯 Auto mode selected: ${type} (${recData.difficulty_level})`);
+        
+        // Update the UI to show auto selection
+        document.getElementById("exerciseType").value = type;
+        
+        // Show a notification about the auto selection
+        showAutoModeNotification(type, recData.difficulty_level, recData.explanation);
+      } else {
+        console.error("Failed to get recommendation, falling back to fill_in_blank");
+        type = "fill_in_blank";
+      }
+    } catch (error) {
+      console.error("Error getting recommendation:", error);
+      type = "fill_in_blank";
+    }
+  } else {
+    // Manual mode - use selected type
+    type = document.getElementById("exerciseType").value;
+  }
+  
   currentExerciseType = type;
   
-  console.log(`🎯 Fetching new exercise of type: ${type}`); // Debug log
+  console.log(`🎯 Fetching new exercise of type: ${type}`);
 
   const response = await fetch("/api/exercise/new", {
     method: "POST",
@@ -520,9 +651,14 @@ async function fetchNewExercise() {
   if (data.exercise && !data.exercise.error) {
     exercisesCompleted++;
     const exercise = data.exercise;
-    currentExerciseData = exercise; // Store for later reference
+    currentExerciseData = exercise;
     
-    console.log(`✅ Received exercise:`, exercise.exercise_type); // Debug log
+    console.log(`✅ Received exercise:`, exercise.exercise_type);
+    
+    // Show difficulty level if available
+    if (exercise.difficulty_level) {
+      console.log(`📊 Difficulty level: ${exercise.difficulty_level}`);
+    }
     
     document.getElementById("prompt").textContent = exercise.prompt;
     currentExerciseId = exercise.exercise_id;
@@ -545,9 +681,19 @@ async function fetchNewExercise() {
       setupSentenceBuilding(exercise);
     }
 
-    // Update progress
-    document.getElementById("progress").textContent = `Exercise ${exercisesCompleted} (${type})`;
+    // Update progress with difficulty info
+    let progressText = `Exercise ${exercisesCompleted} (${type})`;
+    if (exercise.difficulty_level) {
+      progressText += ` - ${exercise.difficulty_level} Level`;
+    }
+    if (isAutoMode) {
+      progressText += " 🤖";
+    }
+    document.getElementById("progress").textContent = progressText;
 
+    // Rest of the existing code for glossary, grammar focus, etc...
+    // (keeping existing implementation)
+    
     // Show glossary
     if (exercise.glossary) {
       const glossaryList = document.getElementById("glossaryList");
@@ -566,7 +712,6 @@ async function fetchNewExercise() {
     if (exercise.grammar_focus) {
       displayGrammarPoints(exercise.grammar_focus);
       document.getElementById("grammarFocus").style.display = "block";
-      // Reset to collapsed state
       document.getElementById("grammarContent").classList.remove("expanded");
       document.getElementById("grammarCollapseIcon").classList.remove("expanded");
     } else {
@@ -586,6 +731,58 @@ async function fetchNewExercise() {
     document.getElementById("prompt").textContent = `⚠️ ${errorMsg}`;
     document.getElementById("submitAnswerBtn").disabled = true;
   }
+}
+
+// Add this new function to show auto mode notifications:
+function showAutoModeNotification(exerciseType, difficultyLevel, explanation) {
+  // Create notification element if it doesn't exist
+  let notification = document.getElementById("autoModeNotification");
+  if (!notification) {
+    notification = document.createElement("div");
+    notification.id = "autoModeNotification";
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
+      max-width: 300px;
+      font-size: 14px;
+    `;
+    document.body.appendChild(notification);
+  }
+  
+  const exerciseTypeFormatted = exerciseType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  
+  notification.innerHTML = `
+    <div style="font-weight: bold; margin-bottom: 0.5rem;">
+      🤖 Auto Mode Selected
+    </div>
+    <div>
+      <strong>${exerciseTypeFormatted}</strong><br>
+      <em>${difficultyLevel} Level</em>
+    </div>
+    <div style="font-size: 12px; margin-top: 0.5rem; opacity: 0.9;">
+      ${explanation}
+    </div>
+  `;
+  
+  // Auto-hide after 4 seconds
+  setTimeout(() => {
+    if (notification && notification.parentNode) {
+      notification.style.opacity = '0';
+      notification.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => {
+        if (notification && notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }
+  }, 4000);
 }
 
 function setupMultipleChoice(exercise) {
@@ -796,8 +993,19 @@ function getCurrentExercise() {
 const params = new URLSearchParams(window.location.search);
 if (params.get("start") === "1") {
   const type = params.get("type") || "fill_in_blank";
-  document.getElementById("exerciseType").value = type;
-  startSession();
+  
+  if (type === "auto") {
+    // Don't set the exercise type selector for auto mode
+    console.log("🤖 Starting in auto mode");
+  } else {
+    document.getElementById("exerciseType").value = type;
+    console.log(`👤 Starting in manual mode with: ${type}`);
+  }
+  
+  // Add a small delay to ensure page is fully loaded
+  setTimeout(() => {
+    startSession();
+  }, 500);
 }
 
 </script>

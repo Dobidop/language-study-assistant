@@ -11,14 +11,16 @@ from engine.generator import generate_exercise_auto as generate_exercise, get_ex
 from engine.logger import log_exercise_to_session
 from engine.planner import select_review_and_new_items
 from engine.profile import load_user_profile, save_user_profile, update_user_profile
-from engine.utils import (
-    categorize_session_errors,
-    merge_error_categories,
-    normalize_answer_for_comparison,
-    normalize_grammar_id,
-    summarize_common_errors
-)
+from engine.utils import normalize_answer_for_comparison,normalize_grammar_id
 from engine.vocab_manager import get_vocab_manager
+from engine.generator import get_difficulty_info
+from engine.profile import get_mastery_progression_summary
+from engine.difficulty_system import (
+    DifficultyProgressionManager, 
+    ExerciseDifficulty,
+    integrate_with_exercise_generator,
+    update_profile_with_difficulty_progress
+)
 
 # Initialize Flask app to serve UI and API
 app = Flask(__name__, static_folder="web", static_url_path="/")
@@ -437,8 +439,15 @@ def api_start_session():
 
 @app.route('/api/exercise/new', methods=['POST'])
 def api_new_exercise():
+    """Enhanced exercise generation with difficulty progression support"""
     data = request.get_json()
-    exercise_type = data.get("exercise_type", "fill_in_blank")
+    exercise_type = data.get("exercise_type", "auto")  # Default to auto
+    
+    # If auto is selected, let the difficulty system choose
+    if exercise_type == "auto":
+        print("🤖 Using automatic exercise type selection based on difficulty progression")
+    else:
+        print(f"👤 User manually selected: {exercise_type}")
     
     exercise = manager.generate_exercise(exercise_type=exercise_type)
     
@@ -544,18 +553,6 @@ def get_session_history():
                 })
     return jsonify({'sessions': sessions}), 200
 
-# -- Error Aggregation --
-@app.route('/api/errors/aggregate', methods=['POST'])
-def api_aggregate_common_errors():
-    profile = load_user_profile('user_profile.json')
-    error_dict = profile.get('common_errors', {})
-    if not error_dict:
-        return jsonify({'message': 'No common errors to summarize.', 'categories': []}), 200
-    summary = summarize_common_errors(error_dict)
-    profile['common_error_categories'] = summary
-    save_user_profile(profile, 'user_profile.json')
-    return jsonify({'message': 'Common errors summarized.', 'categories': summary}), 200
-
 # -- Vocabulary Management Endpoints --
 @app.route('/api/vocab/reload', methods=['POST'])
 def api_vocab_reload():
@@ -594,6 +591,192 @@ def api_debug_vocab_manager():
         'total_loaded': len(vocab_manager.get_all_words()),
         'manager_initialized': vocab_manager._initialized
     }), 200
+
+
+
+@app.route('/api/difficulty/info', methods=['GET'])
+def api_get_difficulty_info():
+    """Get difficulty progression information for all grammar points"""
+    try:
+        from engine.difficulty_system import DifficultyProgressionManager
+        
+        profile = load_user_profile("user_profile.json")
+        manager = DifficultyProgressionManager()
+        
+        # Get all grammar points with difficulty info
+        grammar_summary = profile.get('grammar_summary', {})
+        difficulty_info = {}
+        
+        for grammar_id in grammar_summary.keys():
+            summary = manager.get_difficulty_summary(profile, grammar_id)
+            difficulty_info[grammar_id] = summary
+        
+        # Overall statistics
+        total_grammar = len(grammar_summary)
+        unlocked_difficulties = set()
+        mastered_difficulties = set()
+        
+        for grammar_id, info in difficulty_info.items():
+            for diff_name, mastery in info['mastery_by_difficulty'].items():
+                if mastery['reps'] > 0:  # Has been attempted
+                    unlocked_difficulties.add(diff_name)
+                if mastery['is_mastered']:
+                    mastered_difficulties.add(diff_name)
+        
+        return jsonify({
+            'grammar_difficulty_details': difficulty_info,
+            'overall_stats': {
+                'total_grammar_points': total_grammar,
+                'unlocked_difficulty_types': list(unlocked_difficulties),
+                'mastered_difficulty_types': list(mastered_difficulties),
+                'progression_percentage': len(mastered_difficulties) / 4 * 100 if unlocked_difficulties else 0
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to get difficulty info: {str(e)}'}), 500
+
+@app.route('/api/difficulty/progression', methods=['GET'])
+def api_get_progression_summary():
+    """Get comprehensive progression summary including difficulty mastery"""
+    try:
+        from engine.difficulty_system import DifficultyProgressionManager
+        
+        profile = load_user_profile("user_profile.json")
+        manager = DifficultyProgressionManager()
+        grammar_summary = profile.get('grammar_summary', {})
+        
+        # Traditional mastery stats
+        traditional_stats = {
+            "new": 0, "learning": 0, "reviewing": 0, "mastered": 0
+        }
+        
+        # Count traditional mastery levels
+        for gid, data in grammar_summary.items():
+            reps = data.get('reps', 0)
+            exposures = data.get('exposure', 0)
+            consecutive_correct = data.get('consecutive_correct', 0)
+            recent_accuracy = data.get('recent_accuracy', 0.0)
+            total_attempts = data.get('total_attempts', 0)
+            
+            if exposures == 0:
+                traditional_stats["new"] += 1
+            elif reps < 4 or consecutive_correct < 4 or total_attempts < 8:
+                traditional_stats["learning"] += 1
+            elif reps < 6 or recent_accuracy < 0.8 or consecutive_correct < 5:
+                traditional_stats["reviewing"] += 1
+            else:
+                traditional_stats["mastered"] += 1
+        
+        # Difficulty progression stats
+        difficulty_progression = {}
+        difficulty_totals = {
+            'RECOGNITION': {'mastered': 0, 'attempted': 0},
+            'GUIDED_PRODUCTION': {'mastered': 0, 'attempted': 0},
+            'STRUCTURED_PRODUCTION': {'mastered': 0, 'attempted': 0},
+            'FREE_PRODUCTION': {'mastered': 0, 'attempted': 0}
+        }
+        
+        for grammar_id in grammar_summary.keys():
+            progress_summary = manager.get_difficulty_summary(profile, grammar_id)
+            difficulty_progression[grammar_id] = progress_summary
+            
+            # Aggregate stats
+            for diff_name, mastery_info in progress_summary['mastery_by_difficulty'].items():
+                if mastery_info['reps'] > 0:
+                    difficulty_totals[diff_name]['attempted'] += 1
+                    if mastery_info['is_mastered']:
+                        difficulty_totals[diff_name]['mastered'] += 1
+        
+        # Calculate progression percentages
+        progression_percentages = {}
+        for diff_name, stats in difficulty_totals.items():
+            if stats['attempted'] > 0:
+                progression_percentages[diff_name] = (stats['mastered'] / stats['attempted']) * 100
+            else:
+                progression_percentages[diff_name] = 0
+        
+        # Get recommendations
+        recommendations = []
+        for grammar_id, progress in difficulty_progression.items():
+            current_max = progress['current_max_difficulty']
+            can_unlock = progress['can_unlock_next']
+            
+            if can_unlock:
+                recommendations.append({
+                    'grammar_id': grammar_id,
+                    'current_level': current_max,
+                    'recommendation': 'Ready to unlock next difficulty level',
+                    'priority': 'high'
+                })
+            else:
+                # Find the lowest unmastered difficulty
+                for diff_name, mastery in progress['mastery_by_difficulty'].items():
+                    if mastery['reps'] > 0 and not mastery['is_mastered']:
+                        recommendations.append({
+                            'grammar_id': grammar_id,
+                            'current_level': diff_name,
+                            'recommendation': f'Continue practicing {diff_name.lower()}',
+                            'priority': 'medium'
+                        })
+                        break
+        
+        return jsonify({
+            'traditional_mastery': traditional_stats,
+            'difficulty_mastery_totals': difficulty_totals,
+            'difficulty_progression_percentages': progression_percentages,
+            'grammar_difficulty_details': difficulty_progression,
+            'next_recommended_difficulty': recommendations,
+            'overall_stats': {
+                'total_grammar_points': len(grammar_summary),
+                'progression_percentage': sum(progression_percentages.values()) / 4 if progression_percentages else 0
+            }
+        }), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to get progression summary: {str(e)}'}), 500
+
+@app.route('/api/exercise/recommended', methods=['GET'])
+def api_get_recommended_exercise():
+    """Get the recommended exercise type based on difficulty progression"""
+    try:
+        from engine.planner import select_review_and_new_items
+        from engine.utils import normalize_grammar_id
+        
+        profile = load_user_profile("user_profile.json")
+        selections = select_review_and_new_items(profile_path="user_profile.json")
+        
+        grammar_targets = [normalize_grammar_id(g) for g in
+                          selections['review_grammar'] + selections['new_grammar']]
+        
+        if not grammar_targets:
+            grammar_targets = ['-이에요_예요', '-아요_어요']
+        
+        exercise_type, difficulty_level = integrate_with_exercise_generator(
+            profile, grammar_targets
+        )
+        
+        return jsonify({
+            'recommended_exercise_type': exercise_type,
+            'difficulty_level': difficulty_level.name,
+            'difficulty_value': difficulty_level.value,
+            'target_grammar': grammar_targets,
+            'explanation': f'Recommended {exercise_type} at {difficulty_level.name} level'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get recommendation: {str(e)}'}), 500
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     print("🚀 Starting Korean Study Assistant with centralized vocabulary management...")

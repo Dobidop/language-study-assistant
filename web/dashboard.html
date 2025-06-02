@@ -2,22 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Korean Study Assistant - Dashboard</title>
+  <title>Korean Study Assistant - Enhanced Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 800px;
+      max-width: 1000px;
       margin: 2rem auto;
       padding: 1rem;
+      background-color: #f8f9fa;
     }
     h1, h2 {
       text-align: center;
     }
-    .summary, .history {
+    .summary, .history, .difficulty-section {
       border: 1px solid #ccc;
       padding: 1rem;
       border-radius: 8px;
       margin-bottom: 2rem;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .correct { color: green; }
     .warning { color: darkorange; }
@@ -33,6 +36,75 @@
       text-align: center;
     }
     th { background-color: #f2f2f2; }
+    
+    /* Difficulty progression styles */
+    .difficulty-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .difficulty-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    
+    .difficulty-level {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .level-recognition { background-color: #d1ecf1; color: #0c5460; }
+    .level-guided { background-color: #d4edda; color: #155724; }
+    .level-structured { background-color: #fff3cd; color: #856404; }
+    .level-free { background-color: #f8d7da; color: #721c24; }
+    
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background-color: #e9ecef;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #20c997);
+      transition: width 0.3s ease;
+    }
+    
+    .grammar-item {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 4px solid #6c757d;
+    }
+    
+    .grammar-item.mastered { border-left-color: #28a745; }
+    .grammar-item.learning { border-left-color: #ffc107; }
+    .grammar-item.struggling { border-left-color: #dc3545; }
+    
+    .recommendation-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin: 0.25rem;
+    }
+    
+    .badge-high { background-color: #dc3545; color: white; }
+    .badge-medium { background-color: #ffc107; color: #212529; }
+    .badge-low { background-color: #28a745; color: white; }
+    
     #studyButton {
       display: block;
       margin: 2rem auto;
@@ -47,22 +119,153 @@
     #studyButton:hover {
       background-color: #0056b3;
     }
+    
+    .auto-mode {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    
+    .stat-card {
+      text-align: center;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #495057;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 0.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
 
-<h1>📚 Korean Study Assistant Dashboard</h1>
+<h1>📚 Korean Study Assistant - Enhanced Dashboard</h1>
 
-<br>
-<button onclick="triggerErrorAggregation()">🔄 Regenerate Common Error Summary</button>
-<div id="errorStatus"></div>
-<br>
+<button id="studyButton" onclick="startStudying()">
+  🎯 Start Smart Study Session (Auto Mode)
+</button>
 
-<button id="studyButton" onclick="goStudy()">Start Studying</button>
-<br>
+<div style="text-align: center; margin: 1rem;">
+  <label for="studyMode">Study Mode:</label>
+  <select id="studyMode" onchange="updateStudyButton()">
+    <option value="auto">🤖 Smart Auto (Recommended)</option>
+    <option value="fill_in_blank">Fill in the Blank</option>
+    <option value="fill_multiple_blanks">Fill Multiple Blanks</option>
+    <option value="multiple_choice">Multiple Choice</option>
+    <option value="error_correction">Error Correction</option>
+    <option value="sentence_building">Sentence Building</option>
+    <option value="translation">Translation</option>
+  </select>
+</div>
+
+<section class="difficulty-section">
+  <h2>🎮 Difficulty Progression Overview</h2>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" id="totalGrammarPoints">-</div>
+      <div class="stat-label">Grammar Points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="overallProgress">-</div>
+      <div class="stat-label">Overall Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="currentStreak">-</div>
+      <div class="stat-label">Ready to Advance</div>
+    </div>
+  </div>
+  
+  <h3>Difficulty Level Mastery</h3>
+  <div class="difficulty-grid">
+    <div class="difficulty-card">
+      <div class="difficulty-level level-recognition">🎯 Recognition</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="recognitionProgress" style="width: 0%"></div>
+      </div>
+      <small id="recognitionStats">Multiple Choice, Error Correction</small>
+    </div>
+    
+    <div class="difficulty-card">
+      <div class="difficulty-level level-guided">📝 Guided Production</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="guidedProgress" style="width: 0%"></div>
+      </div>
+      <small id="guidedStats">Fill in the Blank</small>
+    </div>
+    
+    <div class="difficulty-card">
+      <div class="difficulty-level level-structured">🏗️ Structured Production</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="structuredProgress" style="width: 0%"></div>
+      </div>
+      <small id="structuredStats">Multiple Blanks, Sentence Building</small>
+    </div>
+    
+    <div class="difficulty-card">
+      <div class="difficulty-level level-free">🎨 Free Production</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="freeProgress" style="width: 0%"></div>
+      </div>
+      <small id="freeStats">Translation</small>
+    </div>
+  </div>
+  
+  <div id="recommendationSection" style="margin-top: 1rem;">
+    <h3>📋 Current Recommendations</h3>
+    <div id="recommendations" class="loading">Loading recommendations...</div>
+  </div>
+</section>
+
+<section class="summary">
+  <h2>📖 Latest Session Summary</h2>
+  <div id="summary" class="loading">Loading...</div>
+</section>
+
+<section class="difficulty-section">
+  <h2>📊 Grammar Point Details</h2>
+  <div id="grammarDetails" class="loading">Loading grammar progression...</div>
+</section>
+
+<section class="history">
+  <h2>📈 Study History</h2>
+  <table id="history">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Exercises Completed</th>
+        <th>Accuracy</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="3" class="loading">Loading history...</td></tr>
+    </tbody>
+  </table>
+</section>
+
 <section class="llm-settings">
   <h2>🤖 Language Model Settings</h2>
-
   <label for="providerSelect">Provider:</label>
   <select id="providerSelect" onchange="toggleProviderOptions()">
     <option value="openai">OpenAI</option>
@@ -71,18 +274,12 @@
 
   <!-- OpenAI Model Selection -->
   <div id="openaiSettings">
-    <label for="openaiModelSelect">OpenAI Model (price from 2025-04-29):</label>
+    <label for="openaiModelSelect">OpenAI Model:</label>
     <select id="openaiModelSelect">
-      <option value="gpt-4.1-mini">gpt-4.1-mini ($0.40 input / $1.60 output) (standard)</option>
-      <option value="gpt-4.1">gpt-4.1 ($2.00 input / $8.00 output)</option>
-      <option value="gpt-4.1-nano">gpt-4.1-nano ($0.10 input / $0.40 output)</option>
-      <option value="gpt-4o">gpt-4o ($2.50 input / $10.00 output)</option>
-      <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview ($5.00 input / $20.00 output)</option>
-      <option value="gpt-4o-mini">gpt-4o-mini ($0.15 input / $0.60 output)</option>
-      <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview ($0.60 input / $2.40 output)</option>
-      <option value="o4-mini">o4-mini ($1.10 input / $4.40 output)</option>
-      <option value="o3-mini">o3-mini ($1.10 input / $4.40 output)</option>
-      <option value="o1-mini">o1-mini ($1.10 input / $4.40 output)</option>
+      <option value="gpt-4.1-mini">gpt-4.1-mini (standard)</option>
+      <option value="gpt-4.1">gpt-4.1</option>
+      <option value="gpt-4o">gpt-4o</option>
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
     </select><br><br>
   </div>
 
@@ -90,7 +287,6 @@
   <div id="localSettings" style="display: none;">
     <label for="localPort">Local Port:</label>
     <input type="text" id="localPort" value="1234"><br><br>
-
     <label for="localModel">Local Model Name:</label>
     <input type="text" id="localModel" value="qwen3-30b-a3b"><br><br>
   </div>
@@ -99,6 +295,31 @@
 </section>
 
 <script>
+let difficultyData = null;
+let progressionData = null;
+
+function updateStudyButton() {
+  const mode = document.getElementById("studyMode").value;
+  const button = document.getElementById("studyButton");
+  
+  if (mode === "auto") {
+    button.textContent = "🎯 Start Smart Study Session (Auto Mode)";
+    button.className = "auto-mode";
+  } else {
+    button.textContent = `Start Study Session (${mode.replace(/_/g, ' ')})`;
+    button.className = "";
+  }
+}
+
+function startStudying() {
+  const mode = document.getElementById("studyMode").value;
+  if (mode === "auto") {
+    window.location.href = "study.html?start=1&type=auto";
+  } else {
+    window.location.href = `study.html?start=1&type=${mode}`;
+  }
+}
+
 function toggleProviderOptions() {
   const provider = document.getElementById("providerSelect").value;
   if (provider === "openai") {
@@ -130,55 +351,180 @@ function saveLLMConfig() {
   .catch(err => alert("Error: " + err));
 }
 
-// Preload correct fields based on current provider
-toggleProviderOptions();
-</script>
-<br>
-
-<section class="summary">
-  <h2>📖 Latest Session Summary</h2>
-  <div id="summary">Loading...</div>
-</section>
-
-<section class="history">
-  <h2>📈 Study History</h2>
-  <table id="history">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Exercises Completed</th>
-        <th>Accuracy</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="3">Loading history...</td></tr>
-    </tbody>
-  </table>
-</section>
-
-
-
-<script>
-async function triggerErrorAggregation() {
-  const statusDiv = document.getElementById("errorStatus");
-  statusDiv.textContent = "Processing...";
-
+async function loadDifficultyProgression() {
   try {
-    const response = await fetch("/api/errors/aggregate", { method: "POST" });
-    const data = await response.json();
-
-    if (response.ok) {
-      statusDiv.innerHTML = `✅ Done! ${data.categories.length} categories updated. Reload the dashboard to see them.`;
-    } else {
-      statusDiv.textContent = "⚠️ Failed to summarize.";
+    const response = await fetch("/api/difficulty/progression");
+    if (!response.ok) {
+      throw new Error("Failed to load difficulty data");
     }
-  } catch (e) {
-    statusDiv.textContent = "❌ Error: " + e.message;
+    
+    progressionData = await response.json();
+    updateDifficultyDisplay();
+    updateRecommendations();
+    updateGrammarDetails();
+    
+  } catch (error) {
+    console.error("Error loading difficulty progression:", error);
+    document.getElementById("recommendations").textContent = "⚠️ Could not load difficulty progression data.";
   }
 }
 
+function updateDifficultyDisplay() {
+  if (!progressionData) return;
+  
+  const stats = progressionData.overall_stats;
+  const percentages = progressionData.difficulty_progression_percentages;
+  
+  // Update overview stats
+  document.getElementById("totalGrammarPoints").textContent = stats.total_grammar_points || 0;
+  document.getElementById("overallProgress").textContent = `${Math.round(stats.progression_percentage || 0)}%`;
+  
+  // Count ready to advance
+  const readyToAdvance = progressionData.next_recommended_difficulty.filter(r => r.priority === 'high').length;
+  document.getElementById("currentStreak").textContent = readyToAdvance;
+  
+  // Update difficulty progress bars
+  const difficultyMap = {
+    'RECOGNITION': 'recognitionProgress',
+    'GUIDED_PRODUCTION': 'guidedProgress', 
+    'STRUCTURED_PRODUCTION': 'structuredProgress',
+    'FREE_PRODUCTION': 'freeProgress'
+  };
+  
+  for (const [diffName, elementId] of Object.entries(difficultyMap)) {
+    const percentage = percentages[diffName] || 0;
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.style.width = `${percentage}%`;
+    }
+    
+    // Update stats text
+    const totals = progressionData.difficulty_mastery_totals[diffName];
+    const statsElementId = elementId.replace('Progress', 'Stats');
+    const statsElement = document.getElementById(statsElementId);
+    if (statsElement && totals) {
+      statsElement.textContent = `${totals.mastered}/${totals.attempted} mastered (${Math.round(percentage)}%)`;
+    }
+  }
+}
 
+function updateRecommendations() {
+  if (!progressionData) return;
+  
+  const recommendations = progressionData.next_recommended_difficulty;
+  const container = document.getElementById("recommendations");
+  
+  if (recommendations.length === 0) {
+    container.innerHTML = "🎉 Great job! All grammar points are progressing well.";
+    return;
+  }
+  
+  let html = "";
+  recommendations.forEach(rec => {
+    const badgeClass = `badge-${rec.priority}`;
+    const priorityIcon = rec.priority === 'high' ? '🔥' : '📚';
+    
+    html += `
+      <div class="recommendation-badge ${badgeClass}">
+        ${priorityIcon} ${rec.grammar_id}: ${rec.recommendation}
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
 
+function updateGrammarDetails() {
+  if (!progressionData) return;
+  
+  const details = progressionData.grammar_difficulty_details;
+  const container = document.getElementById("grammarDetails");
+  
+  if (Object.keys(details).length === 0) {
+    container.innerHTML = "<p>No grammar points practiced yet. Start studying to see progression!</p>";
+    return;
+  }
+  
+  let html = "";
+  
+  for (const [grammarId, info] of Object.entries(details)) {
+    const maxDiff = info.current_max_difficulty;
+    const canUnlock = info.can_unlock_next;
+    
+    let grammarClass = "grammar-item";
+    if (canUnlock) {
+      grammarClass += " mastered";
+    } else {
+      // Check if any difficulty is struggling
+      const hasStrugglingDiff = Object.values(info.mastery_by_difficulty).some(
+        mastery => mastery.reps > 0 && mastery.accuracy < 0.6
+      );
+      grammarClass += hasStrugglingDiff ? " struggling" : " learning";
+    }
+    
+    html += `
+      <div class="${grammarClass}">
+        <strong>${grammarId}</strong>
+        <small style="float: right;">Max: ${maxDiff} ${canUnlock ? '🚀 Ready to advance!' : ''}</small>
+        <div style="margin-top: 0.5rem;">
+    `;
+    
+    // Show mastery for each difficulty level
+    for (const [diffName, mastery] of Object.entries(info.mastery_by_difficulty)) {
+      if (mastery.reps > 0) {
+        const masteredIcon = mastery.is_mastered ? '✅' : '🔄';
+        const accuracy = Math.round(mastery.accuracy * 100);
+        html += `
+          <small style="margin-right: 1rem;">
+            ${masteredIcon} ${diffName.replace('_', ' ')}: ${accuracy}% (${mastery.reps} reps)
+          </small>
+        `;
+      }
+    }
+    
+    html += `
+        </div>
+      </div>
+    `;
+  }
+  
+  container.innerHTML = html;
+}
+
+async function fetchSessionSummary() {
+  try {
+    const response = await fetch("/api/session/summary");
+    const summaryDiv = document.getElementById("summary");
+
+    if (!response.ok) {
+      summaryDiv.innerHTML = "⚠️ Could not load summary.";
+      return;
+    }
+
+    const data = await response.json();
+    const { duration_minutes, total_exercises, accuracy_rate, error_categories } = data.summary;
+
+    let html = `<p><strong>Duration:</strong> ${duration_minutes} min</p>`;
+    html += `<p><strong>Exercises:</strong> ${total_exercises}</p>`;
+    html += `<p><strong>Accuracy:</strong> ${accuracy_rate}%</p>`;
+
+    if (error_categories && error_categories.length > 0) {
+      html += `<h3>⚠️ Common Mistake Categories (This Session):</h3><ul>`;
+      error_categories.forEach(cat => {
+        html += `<li><strong>${cat.label}</strong> — ${cat.count} error(s)<br><em>Examples:</em> ${cat.examples.slice(0, 2).join(", ")}</li>`;
+      });
+      html += `</ul>`;
+    } else {
+      html += `<p>No common errors detected in the latest session 🎉</p>`;
+    }
+
+    summaryDiv.innerHTML = html;
+
+  } catch (e) {
+    document.getElementById("summary").innerHTML = "❌ Error loading summary.";
+    console.error(e);
+  }
+}
 
 async function fetchSessionHistory() {
   try {
@@ -214,54 +560,23 @@ async function fetchSessionHistory() {
   }
 }
 
-function goStudy() {
-  const selected = document.getElementById("exerciseTypeSelect")?.value || "fill_in_blank";
-  window.location.href = `study.html?start=1&type=${selected}`;
+// Initialize dashboard
+async function initializeDashboard() {
+  // Load all data in parallel
+  await Promise.all([
+    loadDifficultyProgression(),
+    fetchSessionSummary(),
+    fetchSessionHistory()
+  ]);
+  
+  console.log("Dashboard initialized with difficulty progression!");
 }
 
+// Initialize on page load
+toggleProviderOptions();
+initializeDashboard();
 
-fetchSessionHistory();
 </script>
-<script>
-  async function fetchSessionSummary() {
-    try {
-      const response = await fetch("/api/session/summary");
-      const summaryDiv = document.getElementById("summary");
 
-      if (!response.ok) {
-        summaryDiv.innerHTML = "⚠️ Could not load summary.";
-        return;
-      }
-
-      const data = await response.json();
-      const { duration_minutes, total_exercises, accuracy_rate, error_categories } = data.summary;
-
-
-      let html = `<p><strong>Duration:</strong> ${duration_minutes} min</p>`;
-      html += `<p><strong>Exercises:</strong> ${total_exercises}</p>`;
-      html += `<p><strong>Accuracy:</strong> ${accuracy_rate}%</p>`;
-
-      if (error_categories && error_categories.length > 0) {
-        html += `<h3>⚠️ Common Mistake Categories (This Session):</h3><ul>`;
-        error_categories.forEach(cat => {
-          html += `<li><strong>${cat.label}</strong> — ${cat.count} error(s)<br><em>Examples:</em> ${cat.examples.slice(0, 2).join(", ")}</li>`;
-        });
-        html += `</ul>`;
-      } else {
-        html += `<p>No common errors detected in the latest session 🎉</p>`;
-      }
-
-      summaryDiv.innerHTML = html;
-
-    } catch (e) {
-      document.getElementById("summary").innerHTML = "❌ Error loading summary.";
-      console.error(e);
-    }
-  }
-
-  fetchSessionSummary();
-
-  </script>
-  
 </body>
 </html>

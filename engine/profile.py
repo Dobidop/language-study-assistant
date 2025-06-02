@@ -7,6 +7,7 @@ import shutil
 import sys
 import os
 from pathlib import Path
+from engine.difficulty_system import update_profile_with_difficulty_progress
 
 # Constants for MUCH MORE CONSERVATIVE SM-2 algorithm
 MIN_EASE_FACTOR = 1.3
@@ -352,13 +353,7 @@ def fix_corrupted_srs_data(profile: dict) -> dict:
 def update_user_profile(profile: dict, session_exercises: list) -> dict:
     """
     Updates the user profile based on session exercises.
-    Enhanced to ensure all grammar IDs are properly normalized.
-    
-    Each exercise in session_exercises must have keys:
-      - 'grammar_focus': list of grammar IDs
-      - 'vocab_used': list of vocabulary strings  
-      - 'is_correct': bool
-    Returns updated profile.
+    Enhanced with difficulty progression tracking.
     """
     # Fix any existing corrupted data first
     profile = fix_corrupted_srs_data(profile)
@@ -410,6 +405,9 @@ def update_user_profile(profile: dict, session_exercises: list) -> dict:
                 }
             )
             _apply_sm2(vsum, correct)
+
+    # NEW: Update difficulty progression
+    profile = update_profile_with_difficulty_progress(profile, session_exercises)
 
     return profile
 
@@ -651,3 +649,80 @@ if __name__ == '__main__':
     print(f"  After failure: reps={test_item['reps']}, interval={test_item['interval']}, ease={test_item['ease_factor']:.2f}")
     
     print(f"\n✅ Conservative profile system testing complete!")
+
+def get_mastery_progression_summary(profile: dict) -> dict:
+    """
+    Get a comprehensive summary of learning progression including difficulty mastery.
+    """
+    from engine.difficulty_system import DifficultyProgressionManager
+    
+    manager = DifficultyProgressionManager()
+    grammar_summary = profile.get('grammar_summary', {})
+    
+    # Traditional mastery stats
+    traditional_stats = get_grammar_mastery_stats(profile)
+    
+    # Difficulty progression stats
+    difficulty_progression = {}
+    difficulty_totals = {
+        'RECOGNITION': {'mastered': 0, 'attempted': 0},
+        'GUIDED_PRODUCTION': {'mastered': 0, 'attempted': 0},
+        'STRUCTURED_PRODUCTION': {'mastered': 0, 'attempted': 0},
+        'FREE_PRODUCTION': {'mastered': 0, 'attempted': 0}
+    }
+    
+    for grammar_id in grammar_summary.keys():
+        progress_summary = manager.get_difficulty_summary(profile, grammar_id)
+        difficulty_progression[grammar_id] = progress_summary
+        
+        # Aggregate stats
+        for diff_name, mastery_info in progress_summary['mastery_by_difficulty'].items():
+            if mastery_info['reps'] > 0:
+                difficulty_totals[diff_name]['attempted'] += 1
+                if mastery_info['is_mastered']:
+                    difficulty_totals[diff_name]['mastered'] += 1
+    
+    # Calculate progression percentages
+    progression_percentages = {}
+    for diff_name, stats in difficulty_totals.items():
+        if stats['attempted'] > 0:
+            progression_percentages[diff_name] = (stats['mastered'] / stats['attempted']) * 100
+        else:
+            progression_percentages[diff_name] = 0
+    
+    return {
+        'traditional_mastery': traditional_stats,
+        'difficulty_mastery_totals': difficulty_totals,
+        'difficulty_progression_percentages': progression_percentages,
+        'grammar_difficulty_details': difficulty_progression,
+        'next_recommended_difficulty': _get_next_recommended_difficulty(difficulty_progression)
+    }
+
+def _get_next_recommended_difficulty(difficulty_progression: dict) -> dict:
+    """Helper to determine what difficulty should be practiced next"""
+    recommendations = []
+    
+    for grammar_id, progress in difficulty_progression.items():
+        current_max = progress['current_max_difficulty']
+        can_unlock = progress['can_unlock_next']
+        
+        if can_unlock:
+            recommendations.append({
+                'grammar_id': grammar_id,
+                'current_level': current_max,
+                'recommendation': 'Ready to unlock next difficulty level',
+                'priority': 'high'
+            })
+        else:
+            # Find the lowest unmastered difficulty
+            for diff_name, mastery in progress['mastery_by_difficulty'].items():
+                if mastery['reps'] > 0 and not mastery['is_mastered']:
+                    recommendations.append({
+                        'grammar_id': grammar_id,
+                        'current_level': diff_name,
+                        'recommendation': f'Continue practicing {diff_name.lower()}',
+                        'priority': 'medium'
+                    })
+                    break
+    
+    return recommendations
