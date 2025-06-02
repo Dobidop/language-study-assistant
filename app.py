@@ -1,17 +1,24 @@
 import json
 import os
-from flask import Flask, jsonify, send_from_directory, request
-from uuid import uuid4
 from datetime import datetime
-from engine.profile import load_user_profile, update_user_profile, save_user_profile
-from engine.planner import select_review_and_new_items
-from engine.generator import generate_exercise_auto as generate_exercise, get_exercise_type_info, validate_exercise_type
-from engine.evaluator import evaluate_answer, build_filled_sentence
-from engine.logger import log_exercise_to_session
-from engine.utils import normalize_grammar_id, summarize_common_errors
-from engine.utils import categorize_session_errors, merge_error_categories
+from uuid import uuid4
+
+from flask import Flask, jsonify, request, send_from_directory
+
 from engine.curriculum import load_curriculum
-from engine.vocab_manager import get_vocab_manager  # NEW: Import vocabulary manager
+from engine.evaluator import build_filled_sentence, evaluate_answer
+from engine.generator import generate_exercise_auto as generate_exercise, get_exercise_type_info, validate_exercise_type
+from engine.logger import log_exercise_to_session
+from engine.planner import select_review_and_new_items
+from engine.profile import load_user_profile, save_user_profile, update_user_profile
+from engine.utils import (
+    categorize_session_errors,
+    merge_error_categories,
+    normalize_answer_for_comparison,
+    normalize_grammar_id,
+    summarize_common_errors
+)
+from engine.vocab_manager import get_vocab_manager
 
 # Initialize Flask app to serve UI and API
 app = Flask(__name__, static_folder="web", static_url_path="/")
@@ -283,8 +290,18 @@ class ExerciseSessionManager:
             comparison_text = user_answer.strip()
             expected = str(expected).strip()
 
-        # Quick exact match check
-        if comparison_text.strip() == str(expected).strip():
+        # ✅ NEW: Normalize both answers for comparison (ignore trailing punctuation)
+        normalized_comparison = normalize_answer_for_comparison(comparison_text)
+        normalized_expected = normalize_answer_for_comparison(expected)
+        
+        print(f"🔍 Comparison debug:")
+        print(f"   Original user: '{comparison_text}'")
+        print(f"   Normalized user: '{normalized_comparison}'")
+        print(f"   Original expected: '{expected}'")
+        print(f"   Normalized expected: '{normalized_expected}'")
+
+        # Quick exact match check with normalized versions
+        if normalized_comparison == normalized_expected:
             feedback = {
                 'is_correct': True,
                 'corrected_answer': expected,
@@ -292,9 +309,10 @@ class ExerciseSessionManager:
                 'grammar_focus': matching.get('grammar_focus', []),
                 'explanation_summary': 'Perfect match — no issues detected.'
             }
-            print(f"✅ Correct answer!")
+            print(f"✅ Correct answer! (normalized match)")
         else:
             print(f"❌ Incorrect - using LLM evaluation")
+            print(f"   Difference: '{normalized_comparison}' ≠ '{normalized_expected}'")
             # Use LLM evaluation for incorrect answers
             feedback = evaluate_answer(
                 prompt=matching.get('prompt', ''),

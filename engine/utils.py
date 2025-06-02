@@ -3,6 +3,39 @@ import json
 from engine.llm_client import chat
 from typing import Set, Dict, List, Tuple
 
+def normalize_answer_for_comparison(text: str) -> str:
+    """
+    Normalize answer text for comparison by removing trailing punctuation
+    and standardizing whitespace.
+    
+    Args:
+        text: The text to normalize
+        
+    Returns:
+        Normalized text for comparison
+    """
+    if not isinstance(text, str):
+        return str(text)
+    
+    # Remove leading/trailing whitespace
+    normalized = text.strip()
+    
+    # Remove trailing punctuation (but preserve punctuation within the text)
+    # Common punctuation that might appear at the end of Korean sentences
+    trailing_punct = ['!', '?', '.', '。', '！', '？']
+    
+    # Keep removing trailing punctuation until none left
+    while normalized and any(normalized.endswith(punct) for punct in trailing_punct):
+        for punct in trailing_punct:
+            if normalized.endswith(punct):
+                normalized = normalized[:-len(punct)].strip()
+                break
+    
+    # Normalize internal whitespace
+    normalized = ' '.join(normalized.split())
+    
+    return normalized
+
 def normalize_grammar_id(raw_id: str) -> str:
     """
     Enhanced normalization that creates consistent grammar IDs.
