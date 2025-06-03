@@ -48,19 +48,19 @@
       "next_review_date": "2025-06-10"
     },
     "-아요_어요": {
-      "exposure": 4,
+      "exposure": 6,
       "reps": 1,
       "ease_factor": 2.3,
       "interval": 1,
       "lapses": 0,
-      "consecutive_correct": 4,
-      "total_attempts": 4,
+      "consecutive_correct": 6,
+      "total_attempts": 6,
       "recent_accuracy": 1.0,
       "first_seen": "2025-06-02",
-      "last_reviewed": "2025-06-02",
-      "success_streak": 0,
+      "last_reviewed": "2025-06-03",
+      "success_streak": 2,
       "srs_level": 1,
-      "next_review_date": "2025-06-03"
+      "next_review_date": "2025-06-04"
     },
     "-subject_particle_이_가_vs_topic_particle_은_는": {
       "exposure": 33,
@@ -93,34 +93,34 @@
       "next_review_date": "2025-06-05"
     },
     "-location_particle_에": {
-      "exposure": 1,
+      "exposure": 3,
       "reps": 0,
       "ease_factor": 2.0999999999999996,
       "interval": 1,
       "lapses": 1,
-      "consecutive_correct": 0,
-      "total_attempts": 1,
-      "recent_accuracy": 0.0,
+      "consecutive_correct": 2,
+      "total_attempts": 3,
+      "recent_accuracy": 0.6666666666666666,
       "first_seen": "2025-06-02",
-      "last_reviewed": "2025-06-02",
-      "success_streak": 0,
+      "last_reviewed": "2025-06-03",
+      "success_streak": 2,
       "srs_level": 0,
-      "next_review_date": "2025-06-03"
+      "next_review_date": "2025-06-04"
     },
     "-아요_어요_polite_present_tense_ending": {
-      "exposure": 1,
+      "exposure": 3,
       "reps": 0,
       "ease_factor": 2.0999999999999996,
       "interval": 1,
       "lapses": 1,
-      "consecutive_correct": 0,
-      "total_attempts": 1,
-      "recent_accuracy": 0.0,
+      "consecutive_correct": 2,
+      "total_attempts": 3,
+      "recent_accuracy": 0.6666666666666666,
       "first_seen": "2025-06-02",
-      "last_reviewed": "2025-06-02",
-      "success_streak": 0,
+      "last_reviewed": "2025-06-03",
+      "success_streak": 2,
       "srs_level": 0,
-      "next_review_date": "2025-06-03"
+      "next_review_date": "2025-06-04"
     }
   },
   "vocab_summary": {},
@@ -242,16 +242,28 @@
       ],
       "difficulty_mastery": {
         "2": {
-          "reps": 0,
+          "reps": 1,
           "ease_factor": 2.3,
           "interval": 1,
           "lapses": 1,
-          "consecutive_correct": 0,
-          "total_attempts": 1,
-          "recent_accuracy": 0.0,
+          "consecutive_correct": 1,
+          "total_attempts": 2,
+          "recent_accuracy": 0.5,
           "first_seen": "2025-06-02",
-          "last_reviewed": "2025-06-02",
-          "next_review_date": "2025-06-03"
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-04"
+        },
+        "3": {
+          "reps": 1,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 1,
+          "total_attempts": 1,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-03",
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-04"
         }
       }
     },
@@ -262,16 +274,28 @@
       ],
       "difficulty_mastery": {
         "2": {
-          "reps": 0,
+          "reps": 1,
           "ease_factor": 2.3,
           "interval": 1,
           "lapses": 1,
-          "consecutive_correct": 0,
-          "total_attempts": 1,
-          "recent_accuracy": 0.0,
+          "consecutive_correct": 1,
+          "total_attempts": 2,
+          "recent_accuracy": 0.5,
           "first_seen": "2025-06-02",
-          "last_reviewed": "2025-06-02",
-          "next_review_date": "2025-06-03"
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-04"
+        },
+        "3": {
+          "reps": 1,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 1,
+          "total_attempts": 1,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-03",
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-04"
         }
       }
     },
@@ -282,16 +306,16 @@
       ],
       "difficulty_mastery": {
         "2": {
-          "reps": 1,
+          "reps": 2,
           "ease_factor": 2.3,
           "interval": 1,
           "lapses": 0,
-          "consecutive_correct": 1,
-          "total_attempts": 1,
+          "consecutive_correct": 2,
+          "total_attempts": 2,
           "recent_accuracy": 1.0,
           "first_seen": "2025-06-02",
-          "last_reviewed": "2025-06-02",
-          "next_review_date": "2025-06-03"
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-05"
         },
         "1": {
           "reps": 1,
@@ -304,6 +328,18 @@
           "first_seen": "2025-06-02",
           "last_reviewed": "2025-06-02",
           "next_review_date": "2025-06-03"
+        },
+        "3": {
+          "reps": 1,
+          "ease_factor": 2.3,
+          "interval": 1,
+          "lapses": 0,
+          "consecutive_correct": 1,
+          "total_attempts": 1,
+          "recent_accuracy": 1.0,
+          "first_seen": "2025-06-03",
+          "last_reviewed": "2025-06-03",
+          "next_review_date": "2025-06-04"
         }
       }
     }

@@ -831,8 +831,14 @@ function setupSentenceBuilding(exercise) {
   });
 }
 
-function selectWord(word, index) {
-  const wordElement = document.querySelector(`[data-index="${index}"]`);
+function selectWord(word, originalIndex) {
+  // Find the word element by both word and original index
+  const wordElement = document.querySelector(`[data-index="${originalIndex}"][data-word="${word}"]`);
+  
+  if (!wordElement) {
+    console.error(`Could not find word element for: ${word} (index: ${originalIndex})`);
+    return;
+  }
   
   if (wordElement.classList.contains('selected')) {
     // Remove from selected
@@ -849,11 +855,12 @@ function selectWord(word, index) {
   builtDiv.textContent = selectedWords.join(' ') || 'Click words to build your sentence...';
 }
 
+
 function clearAnswer() {
   selectedWords = [];
   selectedChoice = null;
   
-  // Clear all selections
+  // Clear all selections - updated to handle randomized word pieces
   document.querySelectorAll('.word-piece').forEach(piece => {
     piece.classList.remove('selected');
   });
@@ -981,6 +988,40 @@ if (data.feedback) {
     feedbackDiv.innerHTML = `<p>⚠️ Could not evaluate answer.</p>`;
   }
 }
+
+function setupSentenceBuilding(exercise) {
+  const availableDiv = document.getElementById("availableWords");
+  const builtDiv = document.getElementById("builtSentence");
+  
+  availableDiv.innerHTML = "";
+  builtDiv.innerHTML = "";
+  selectedWords = [];
+  
+  const wordPieces = exercise.word_pieces || [];
+  
+  // 🎯 RANDOMIZE the word pieces before displaying them
+  const shuffledPieces = [...wordPieces]; // Create a copy
+  for (let i = shuffledPieces.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledPieces[i], shuffledPieces[j]] = [shuffledPieces[j], shuffledPieces[i]];
+  }
+  
+  // Display the shuffled pieces
+  shuffledPieces.forEach((word, displayIndex) => {
+    // Find the original index in the wordPieces array for data-index
+    const originalIndex = wordPieces.indexOf(word);
+    
+    const span = document.createElement("span");
+    span.className = "word-piece";
+    span.textContent = word;
+    span.onclick = () => selectWord(word, originalIndex);
+    span.dataset.index = originalIndex; // Keep original index for selection logic
+    span.dataset.word = word; // Add word for easier identification
+    availableDiv.appendChild(span);
+  });
+}
+
+
 
 // Helper function to get current exercise data (you'll need to store this when fetching)
 let currentExerciseData = null;
